@@ -29,7 +29,7 @@ class MoviesSpider(scrapy.Spider):
         resp_data = json.loads(response.text)
         dates = resp_data['body']['dates']
 
-        dates.reverse()
+        dates.reverse() # we need to reverse the list as the spider would write the data to .json from end->beginning
 
         for date in dates:
             url = '%s/quickbook/10106/film-events/in-cinema/%s/at-date/%s?attr=&lang=en_GB' % (
