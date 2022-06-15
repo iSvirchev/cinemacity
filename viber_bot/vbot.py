@@ -23,21 +23,54 @@ JSON_FILE_PATH = open('..\\cinemacity_crawlers\\movies.json')
 movies_data = json.load(JSON_FILE_PATH)
 JSON_FILE_PATH.close()
 
-DAYS = []
-dates_resp = 'Which day are you interested in?\n'
-i = 1
-for dict_obj in movies_data:
-    for key in dict_obj:
-        DAYS.append(key)
-        dates_resp = dates_resp + '\n' + (str(i) + '. ' + key)
-        i = i + 1
-print(dates_resp.rstrip())
 
-i = 1
-movies_resp = 'Movies currently in cinema for date %s:\n' % DAYS[0]
-for movie in movies_data[0][DAYS[0]]['movies']:
-    movies_resp = movies_resp + '\n' + str(i) + '. ' + movie['movie_name']
-    i = i + 1
+def convert_arr_to_dict(arr):
+    dict = {}
+    for e in arr:
+        for k, v in e.items():
+            dict[k] = v
+
+    return dict
+
+
+movies_data = dict(convert_arr_to_dict(movies_data))  # use dict() to take advantage of intellisense
+
+days = list(movies_data.keys())
+dates_resp = 'Which day are you interested in?\n'
+for data in movies_data:
+    dates_resp = dates_resp + '\n' + data
+
+movies_resp = 'Movies currently in cinema for date %s:\n' % days[0]
+for movie in movies_data[days[0]]['movies']:
+    movies_resp = movies_resp + '\n' + movie['movie_name']
+
+
+def generate_keyboard(days_arr):
+    keyboard = {
+        "Type": "keyboard",
+        "Buttons": []
+    }
+
+    button_tpl = {
+        "Columns": 2,
+        "Rows": 2,
+        "BgColor": "#e6f5ff",
+        "BgLoop": True,
+        "ActionType": "reply",
+        "ActionBody": "<add_action_body>",
+        "Text": "<add_btn_txt>"
+    }
+
+    for day in days_arr:
+        day_btn = button_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
+        day_btn['ActionBody'] = day
+        day_btn['Text'] = day
+        keyboard['Buttons'].append(day_btn)
+
+    return keyboard
+
+
+days_kb = generate_keyboard(days)
 
 
 @app.route('/', methods=['POST'])
@@ -52,20 +85,17 @@ def incoming():
     if isinstance(viber_request,
                   ViberMessageRequest):  # check this https://developers.viber.com/docs/api/python-bot-api/#request-object
         sender_id = viber_request.sender.id
-        message = viber_request.message.text.lower()
-
-        if message == 'dates':
+        message = viber_request.message.text
+        print(message)
+        print(movies_data)
+        print(message in movies_data)
+        if message.lower() == 'dates':
             viber.send_messages(sender_id, [
-                TextMessage(text=dates_resp)
+                TextMessage(text=dates_resp, keyboard=days_kb)
             ])
-        elif message == 'movies':
+        elif message in movies_data:
             viber.send_messages(sender_id, [
                 TextMessage(text=movies_resp)
-            ])
-        else:
-            # lets echo back
-            viber.send_messages(sender_id, [
-                viber_request.message
             ])
     elif isinstance(viber_request, ViberSubscribedRequest):
         viber.send_messages(viber_request.user.id, [
