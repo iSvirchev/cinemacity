@@ -40,9 +40,18 @@ dates_resp = 'Which day are you interested in?\n'
 for data in movies_data:
     dates_resp = dates_resp + '\n' + data
 
-movies_resp = 'Movies currently in cinema for date %s:\n' % days[0]
-for movie in movies_data[days[0]]['movies']:
-    movies_resp = movies_resp + '\n' + movie['movie_name']
+
+def generate_movies_response(day):
+    movies_resp = 'Movies currently in cinema for date %s:\n' % day
+    for movie in movies_data[day]['movies']:
+        movies_resp = movies_resp + '\n' + movie['movie_name']
+    return movies_resp
+
+
+info_resp = 'Please type one of the following commands to retrieve movie information:\n' \
+            '*Today* - will display today\'s movies on screen\n' \
+            '*Tomorrow* - will display tomorrow\'s movies on screen\n' \
+            '*Dates* - will provide you with buttons of dates from which you can choose.'
 
 
 def generate_keyboard(days_arr):
@@ -86,29 +95,42 @@ def incoming():
                   ViberMessageRequest):  # check this https://developers.viber.com/docs/api/python-bot-api/#request-object
         sender_id = viber_request.sender.id
         message = viber_request.message.text
-        print(message)
-        print(movies_data)
-        print(message in movies_data)
+
         if message.lower() == 'dates':
             viber.send_messages(sender_id, [
                 TextMessage(text=dates_resp, keyboard=days_kb)
             ])
         elif message in movies_data:
+            reply = generate_movies_response(message)
             viber.send_messages(sender_id, [
-                TextMessage(text=movies_resp)
+                TextMessage(text=reply)
+            ])
+        elif message.lower() == 'today':
+            reply = generate_movies_response(days[0])
+            viber.send_messages(sender_id, [
+                TextMessage(text=reply)
+            ])
+        elif message.lower() == 'tomorrow':
+            reply = generate_movies_response(days[1])
+            viber.send_messages(sender_id, [
+                TextMessage(text=reply)
+            ])
+        elif message.lower() == 'info':
+            viber.send_messages(sender_id, [
+                TextMessage(text=info_resp)
             ])
     elif isinstance(viber_request, ViberSubscribedRequest):
         viber.send_messages(viber_request.user.id, [
-            TextMessage(text='Hello %s. Thanks you for subscribing!' % viber_request.user.name)
+            TextMessage(text='Hello %s! Thanks you for subscribing!\n'
+                             'Type *INFO* for more information on the available commands.' % viber_request.user.name)
         ])
     elif isinstance(viber_request, ViberConversationStartedRequest):
-        print(viber_request.context)
+        reply = 'Welcome %s!\n %s' % (viber_request.user.name, info_resp)
         viber.send_messages(viber_request.user.id, [
-            TextMessage(text='Welcome %s!' % viber_request.user.name)
+            TextMessage(text=reply)
         ])
     elif isinstance(viber_request, ViberFailedRequest):
-        print()
-        # logger.warn("client failed receiving message. failure: {0}".format(viber_request))
+        print("Failed!")
 
     return Response(status=200)
 
