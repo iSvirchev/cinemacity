@@ -42,7 +42,7 @@ for data in movies_data:
 
 
 def generate_movies_response(day):
-    movies_resp = 'Movies currently in cinema for date %s:\n' % day
+    movies_resp = '*Movies currently in cinema for date %s: *\n' % day
     for movie in movies_data[day]['movies']:
         movies_resp = movies_resp + '\n' + movie['movie_name']
     return movies_resp
@@ -54,7 +54,7 @@ info_resp = 'Please type one of the following commands to retrieve movie informa
             '*Dates* - will provide you with buttons of dates from which you can choose.'
 
 
-def generate_keyboard(days_arr):
+def generate_btn_keyboard(days_arr):
     keyboard = {
         "Type": "keyboard",
         "Buttons": []
@@ -79,7 +79,38 @@ def generate_keyboard(days_arr):
     return keyboard
 
 
-days_kb = generate_keyboard(days)
+days_kb = generate_btn_keyboard(days)
+
+
+def generate_movie_keyboard(day):
+    keyboard = {
+        "Type": "keyboard",
+        "Buttons": []
+    }
+
+    m_btn_tpl = {
+        "Columns": 2,
+        "Rows": 2,
+        "BgColor": "#e6f5ff",
+        "BgLoop": True,
+        "BgMedia": "<add_poster_link>",
+        "ActionType": "",
+        "ActionBody": "<add_action_body>",
+        "Text": "<add_btn_txt>"
+    }
+
+    for m in movies_data[day]['movies']:
+        m_name = m['movie_name']
+        m_poster = m['poster_link']
+
+        day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
+        day_btn['ActionBody'] = m_name
+        # day_btn['Text'] = "<font color=\"#494E67\">%s</font>" % m_name
+        day_btn['Text'] = m_name
+        day_btn['BgMedia'] = m_poster
+        keyboard['Buttons'].append(day_btn)
+
+    return keyboard
 
 
 @app.route('/', methods=['POST'])
@@ -102,8 +133,9 @@ def incoming():
             ])
         elif message in movies_data:
             reply = generate_movies_response(message)
+            kb = generate_movie_keyboard(message)
             viber.send_messages(sender_id, [
-                TextMessage(text=reply)
+                TextMessage(text=reply, keyboard=kb)
             ])
         elif message.lower() == 'today':
             reply = generate_movies_response(days[0])
@@ -125,7 +157,7 @@ def incoming():
                              'Type *INFO* for more information on the available commands.' % viber_request.user.name)
         ])
     elif isinstance(viber_request, ViberConversationStartedRequest):
-        reply = 'Welcome %s!\n %s' % (viber_request.user.name, info_resp)
+        reply = 'Welcome %s!\n\n%s' % (viber_request.user.name, info_resp)
         viber.send_messages(viber_request.user.id, [
             TextMessage(text=reply)
         ])
