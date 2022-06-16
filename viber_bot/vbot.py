@@ -48,6 +48,8 @@ dates_resp = 'Which day are you interested in?\n'
 for data in movies_data:
     dates_resp = dates_resp + '\n' + data
 
+TODAY = days[0]
+
 
 def generate_movies_response(day):
     movies_resp = '*Movies currently in cinema for date %s*\n' % day
@@ -56,7 +58,7 @@ def generate_movies_response(day):
     return movies_resp
 
 
-info_resp = 'Please type one of the following commands to retrieve movie information:\n' \
+info_resp = 'Please type one of the following commands:\n\n' \
             '*Today* - will display today\'s movies on screen\n' \
             '*Tomorrow* - will display tomorrow\'s movies on screen\n' \
             '*Dates* - will provide you with buttons of dates from which you can choose.'
@@ -127,6 +129,9 @@ def gen_movie_resp(day, movie):
     return m_resp
 
 
+selected_day = TODAY
+
+
 @app.route('/', methods=['POST'])
 def incoming():
     # every viber message is signed, you can verify the signature using this method
@@ -136,8 +141,9 @@ def incoming():
     # this library supplies a simple way to receive a request object
     viber_request = viber.parse_request(request.get_data())
 
-    if isinstance(viber_request,
-                  ViberMessageRequest):  # check this https://developers.viber.com/docs/api/python-bot-api/#request-object
+    if isinstance(viber_request, ViberMessageRequest):
+        global selected_day  # exporting a global variable containg the day that we clicked
+
         sender_id = viber_request.sender.id
         message = viber_request.message.text
 
@@ -145,29 +151,27 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text=dates_resp, keyboard=days_kb)
             ])
-        elif message in movies_data:  # message here equals the date
-            reply = generate_movies_response(message)
-            kb = generate_movie_keyboard(message)
+        elif message in movies_data or message.lower() == 'today' or message.lower() == 'tomorrow':
+            # message here equals the date or today or tomorrow
+            if message.lower() == 'today':
+                selected_day = TODAY
+            elif message.lower() == 'tomorrow':
+                selected_day = days[1]
+            else:
+                selected_day = message
+            reply = generate_movies_response(selected_day)
+            kb = generate_movie_keyboard(selected_day)
+
             viber.send_messages(sender_id, [
                 TextMessage(text=reply, keyboard=kb)
             ])
-        elif message in movies_data[days[0]]:  # message here equals the name of the movie
-            reply = gen_movie_resp(days[0], message)
-            kb = generate_movie_keyboard(days[0])
+        elif message in movies_data[selected_day]:  # message here equals the name of the movie
+            reply = gen_movie_resp(selected_day, message)
+            kb = generate_movie_keyboard(selected_day)
             viber.send_messages(sender_id, [
                 TextMessage(text=reply)
             ])
-        elif message.lower() == 'today':
-            reply = generate_movies_response(days[0])
-            viber.send_messages(sender_id, [
-                TextMessage(text=reply)
-            ])
-        elif message.lower() == 'tomorrow':
-            reply = generate_movies_response(days[1])
-            viber.send_messages(sender_id, [
-                TextMessage(text=reply)
-            ])
-        elif message.lower() == 'info':
+        else:
             viber.send_messages(sender_id, [
                 TextMessage(text=info_resp)
             ])
