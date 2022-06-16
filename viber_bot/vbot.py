@@ -69,20 +69,23 @@ def generate_btn_keyboard(days_arr):
         "Buttons": []
     }
 
+    colour_codes = ['#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96', '#D9CBC1',
+                    '#EDE7DC', '#C9CBD0', '#ECE3E0']
+
     button_tpl = {
         "Columns": 2,
         "Rows": 2,
-        "BgColor": "#e6f5ff",
+        "BgColor": "#e6f5ff",  # <enter_colour_code_here>
         "BgLoop": True,
         "ActionType": "reply",
         "ActionBody": "<add_action_body>",
         "Text": "<add_btn_txt>"
     }
-
     for day in days_arr:
         day_btn = button_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
         day_btn['ActionBody'] = day
-        day_btn['Text'] = day
+        day_btn['Text'] = '<font size=\"24\">%s</font>' % day
+        day_btn['BgColor'] = colour_codes[days_arr.index(day)]
         keyboard['Buttons'].append(day_btn)
 
     return keyboard
