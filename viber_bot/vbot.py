@@ -3,7 +3,6 @@ from viberbot import Api
 from viberbot.api.bot_configuration import BotConfiguration
 from viberbot.api.messages import *
 
-# from viberbot.api.messages.keyboard_message import PictureMessage
 import json
 
 from viberbot.api.viber_requests import ViberConversationStartedRequest
@@ -167,9 +166,9 @@ def incoming():
             ])
         elif message in movies_data[selected_day]:  # message here equals the name of the movie
             reply = gen_movie_resp(selected_day, message)
-            kb = generate_movie_keyboard(selected_day)
+            poster = movies_data[selected_day][message]['poster_link']
             viber.send_messages(sender_id, [
-                TextMessage(text=reply)
+                PictureMessage(text=reply, media=poster)
             ])
         else:
             viber.send_messages(sender_id, [
