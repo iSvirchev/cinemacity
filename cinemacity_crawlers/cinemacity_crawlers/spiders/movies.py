@@ -42,7 +42,7 @@ class MoviesSpider(scrapy.Spider):
         body = resp_data['body']
         all_movies = body['films']
         all_showings = body['events']
-        movies = []
+        movies = {}
         date = None
 
         for movie in all_movies:
@@ -56,13 +56,10 @@ class MoviesSpider(scrapy.Spider):
                     date = event_datetime.strftime('%d %b')
                 if event['filmId'] == movie_id:
                     movie_screenings.append(event_datetime.strftime('%H:%M'))
-            movie = {
-                # 'movie_id': movie_id,
-                'movie_name': movie_name,
-                'movie_screenings': movie_screenings,
-                'poster_link': poster_link,
-            }
-            movies.append(movie)
 
-        yield {date: {'movies': movies}}
+            movie = {'movie_screenings': movie_screenings, 'poster_link': poster_link}
+
+            movies[movie_name] = movie
+
+        yield {date: movies}
 

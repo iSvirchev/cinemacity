@@ -16,7 +16,7 @@ app = Flask(__name__)
 viber = Api(BotConfiguration(
     name='CinemaCity',
     avatar='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzTmbvZUpF1ocKtWIZoV9jHPQ7dXqFi0UGnA&usqp=CAU',
-    auth_token='4f56fc249e27e5cc-2f98f6f44db121e-587f215aa9e22f75'
+    auth_token='4f56fc249e27e5cc-2f98f6f44db121e-587f215aa9e22f75'  # TODO: hide this
 ))
 
 JSON_FILE_PATH = open('..\\cinemacity_crawlers\\movies.json')
@@ -42,9 +42,9 @@ for data in movies_data:
 
 
 def generate_movies_response(day):
-    movies_resp = '*Movies currently in cinema for date %s: *\n' % day
-    for movie in movies_data[day]['movies']:
-        movies_resp = movies_resp + '\n' + movie['movie_name']
+    movies_resp = '*Movies currently in cinema for date %s*:\n' % day
+    for movie in movies_data[day]:
+        movies_resp = movies_resp + '\n' + movie
     return movies_resp
 
 
@@ -99,18 +99,24 @@ def generate_movie_keyboard(day):
         "Text": "<add_btn_txt>"
     }
 
-    for m in movies_data[day]['movies']:
-        m_name = m['movie_name']
-        m_poster = m['poster_link']
+    for m_name, m_value in movies_data[day].items():
+        m_poster = m_value['poster_link']
 
         day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
         day_btn['ActionBody'] = m_name
-        # day_btn['Text'] = "<font color=\"#494E67\">%s</font>" % m_name
+        # day_btn['Text'] = "<font size=\"12\">%s</font>" % m_name
         day_btn['Text'] = m_name
         day_btn['BgMedia'] = m_poster
         keyboard['Buttons'].append(day_btn)
 
     return keyboard
+
+
+def gen_movie_resp(day, movie):
+    m_resp = 'Screenings of movie *%s* on *%s* :\n\n' % (movie, day)
+    screenings = movies_data[day][movie]['movie_screenings']
+    m_resp = m_resp + '\n'.join(screenings)
+    return m_resp
 
 
 @app.route('/', methods=['POST'])
@@ -131,11 +137,17 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text=dates_resp, keyboard=days_kb)
             ])
-        elif message in movies_data:
+        elif message in movies_data:    # message here equals the date
             reply = generate_movies_response(message)
             kb = generate_movie_keyboard(message)
             viber.send_messages(sender_id, [
                 TextMessage(text=reply, keyboard=kb)
+            ])
+        elif message in movies_data[days[0]]:   # message here equals the name of the movie
+            reply = gen_movie_resp(days[0], message)
+            kb = generate_movie_keyboard(days[0])
+            viber.send_messages(sender_id, [
+                TextMessage(text=reply)
             ])
         elif message.lower() == 'today':
             reply = generate_movies_response(days[0])
