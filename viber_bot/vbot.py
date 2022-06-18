@@ -2,6 +2,7 @@ from flask import Flask, request, Response
 from viberbot import Api
 from viberbot.api.bot_configuration import BotConfiguration
 from viberbot.api.messages import *
+import logging
 
 import json
 
@@ -10,6 +11,19 @@ from viberbot.api.viber_requests import ViberFailedRequest
 from viberbot.api.viber_requests import ViberMessageRequest
 from viberbot.api.viber_requests import ViberSubscribedRequest
 from viberbot.api.viber_requests import ViberUnsubscribedRequest
+
+
+def init_logger():
+    global logger
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    handler = logging.StreamHandler()
+    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+
+
+init_logger()
 
 
 def load_json_data(path):
@@ -136,6 +150,8 @@ selected_day = TODAY
 
 @app.route('/', methods=['POST'])
 def incoming():
+    logger.info("received request. post data: {0}".format(request.get_data()))
+
     # every viber message is signed, you can verify the signature using this method
     if not viber.verify_signature(request.get_data(), request.headers.get('X-Viber-Content-Signature')):
         return Response(status=403)
@@ -195,4 +211,4 @@ def incoming():
 
 if __name__ == "__main__":
     context = ('server.crt', 'server.key')
-    app.run(port='8080')
+    app.run(port=8080)
