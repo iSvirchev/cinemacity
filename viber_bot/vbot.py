@@ -2,8 +2,8 @@ from flask import Flask, request, Response
 from viberbot import Api
 from viberbot.api.bot_configuration import BotConfiguration
 from viberbot.api.messages import *
+from sys import platform
 import logging
-
 import json
 
 from viberbot.api.viber_requests import ViberConversationStartedRequest
@@ -12,18 +12,19 @@ from viberbot.api.viber_requests import ViberMessageRequest
 from viberbot.api.viber_requests import ViberSubscribedRequest
 from viberbot.api.viber_requests import ViberUnsubscribedRequest
 
+CONFIG_PATH = 'misc/config.json'
+MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
 
-def init_logger():
-    global logger
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    handler = logging.StreamHandler()
-    formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
+logging.basicConfig(filename='vbot.log',
+                    filemode='w',
+                    level=logging.INFO,
+                    format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s') # TODO: improve how msg is displayed
+logger = logging.getLogger()
 
-
-init_logger()
+if platform == "win32":  # Using this for local work
+    logger.info(platform)
+    CONFIG_PATH = CONFIG_PATH.replace('/', '\\')
+    MOVIE_JSON_PATH = MOVIE_JSON_PATH.replace('/', '\\')
 
 
 def load_json_data(path):
@@ -34,8 +35,8 @@ def load_json_data(path):
     return file_data
 
 
-config_data = load_json_data('misc\\config.json')
-movies_data = load_json_data('..\\cinemacity_crawlers\\movies.json')
+config_data = load_json_data(CONFIG_PATH)
+movies_data = load_json_data(MOVIE_JSON_PATH)
 
 app = Flask(__name__)
 viber = Api(BotConfiguration(
@@ -46,12 +47,12 @@ viber = Api(BotConfiguration(
 
 
 def convert_arr_to_dict(arr):
-    dict = {}
+    dictionary = {}
     for e in arr:
         for k, v in e.items():
-            dict[k] = v
+            dictionary[k] = v
 
-    return dict
+    return dictionary
 
 
 movies_data = dict(convert_arr_to_dict(movies_data))  # use dict() to take advantage of intellisense
@@ -84,7 +85,8 @@ def generate_btn_keyboard(days_arr):
     }
 
     colour_codes = ['#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96', '#D9CBC1',
-                    '#EDE7DC', '#C9CBD0', '#ECE3E0']
+                    '#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96', '#D9CBC1',
+                    '#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96', '#D9CBC1']
 
     button_tpl = {
         "Columns": 2,
@@ -156,11 +158,10 @@ def incoming():
     if not viber.verify_signature(request.get_data(), request.headers.get('X-Viber-Content-Signature')):
         return Response(status=403)
 
-    # this library supplies a simple way to receive a request object
     viber_request = viber.parse_request(request.get_data())
 
     if isinstance(viber_request, ViberMessageRequest):
-        global selected_day  # exporting a global variable containg the day that we clicked
+        global selected_day  # exporting a global variable containing the day that we clicked
 
         sender_id = viber_request.sender.id
         message = viber_request.message.text
@@ -210,5 +211,4 @@ def incoming():
 
 
 if __name__ == "__main__":
-    context = ('server.crt', 'server.key')
-    app.run(port=8080)
+    app.run(host='0.0.0.0')
