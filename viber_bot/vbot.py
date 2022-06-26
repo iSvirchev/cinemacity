@@ -1,19 +1,15 @@
+import datetime
+import json
+import logging
+import os.path
+from sys import platform
+
 from flask import Flask, request, Response
 from viberbot import Api
 from viberbot.api.bot_configuration import BotConfiguration
 from viberbot.api.messages import *
-from sys import platform
-import logging
-import json
-
-from viberbot.api.viber_requests import ViberConversationStartedRequest
-from viberbot.api.viber_requests import ViberFailedRequest
-from viberbot.api.viber_requests import ViberMessageRequest
-from viberbot.api.viber_requests import ViberSubscribedRequest
-from viberbot.api.viber_requests import ViberUnsubscribedRequest
-
-CONFIG_PATH = 'misc/token_file'
-MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
+from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFailedRequest, ViberMessageRequest, \
+    ViberSubscribedRequest
 
 logging.basicConfig(filename='vbot.log',
                     filemode='w',
@@ -21,8 +17,15 @@ logging.basicConfig(filename='vbot.log',
                     format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
 logger = logging.getLogger()
 
+CONFIG_PATH = 'misc/token_file'
+MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
+
+datetime_now = datetime.datetime.now()
+today = datetime_now.strftime('%d %b')
+logger.info('Today is: ' + today)
+
+logger.info('OS is: ' + platform)
 if platform == "win32":  # Using this for local work
-    logger.info(platform)
     CONFIG_PATH = CONFIG_PATH.replace('/', '\\')
     MOVIE_JSON_PATH = MOVIE_JSON_PATH.replace('/', '\\')
 
@@ -51,14 +54,12 @@ def convert_arr_to_dict(arr):
     return dictionary
 
 
-movies_data = dict(convert_arr_to_dict(movies_data))  # use dict() to take advantage of intellisense
+movies_data = dict(convert_arr_to_dict(movies_data))  # cast to dict() to take advantage of intellisense
 
 days = list(movies_data.keys())
 dates_resp = 'Which day are you interested in?\n'
 for data in movies_data:
     dates_resp = dates_resp + '\n' + data
-
-TODAY = days[0]
 
 
 def generate_movies_response(day):
@@ -143,13 +144,12 @@ def gen_movie_resp(day, movie):
     return m_resp
 
 
-selected_day = TODAY
+selected_day = today
 
 
 @app.route('/', methods=['POST'])
 def incoming():
-    logger.info("received request. post data: {0}".format(request.get_data()))
-
+    logger.debug("Received request! Post data: {0}".format(request.get_data()))
     # every viber message is signed, you can verify the signature using this method
     if not viber.verify_signature(request.get_data(), request.headers.get('X-Viber-Content-Signature')):
         return Response(status=403)
@@ -169,7 +169,7 @@ def incoming():
         elif message in movies_data or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
             if message.lower() == 'today':
-                selected_day = TODAY
+                selected_day = today
             elif message.lower() == 'tomorrow':
                 selected_day = days[1]
             else:
