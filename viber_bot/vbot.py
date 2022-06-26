@@ -12,13 +12,13 @@ from viberbot.api.viber_requests import ViberMessageRequest
 from viberbot.api.viber_requests import ViberSubscribedRequest
 from viberbot.api.viber_requests import ViberUnsubscribedRequest
 
-CONFIG_PATH = 'misc/config.json'
+CONFIG_PATH = 'misc/token_file'
 MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
 
 logging.basicConfig(filename='vbot.log',
                     filemode='w',
                     level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s') # TODO: improve how msg is displayed
+                    format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
 logger = logging.getLogger()
 
 if platform == "win32":  # Using this for local work
@@ -26,23 +26,19 @@ if platform == "win32":  # Using this for local work
     CONFIG_PATH = CONFIG_PATH.replace('/', '\\')
     MOVIE_JSON_PATH = MOVIE_JSON_PATH.replace('/', '\\')
 
+f1 = open(CONFIG_PATH, 'r')
+bot_token = f1.read().replace('X-Viber-Auth-Token:', '')
+f1.close()
 
-def load_json_data(path):
-    file = open(path)
-    file_data = json.load(file)
-    file.close()
-
-    return file_data
-
-
-config_data = load_json_data(CONFIG_PATH)
-movies_data = load_json_data(MOVIE_JSON_PATH)
+f2 = open(MOVIE_JSON_PATH)
+movies_data = json.load(f2)
+f2.close()
 
 app = Flask(__name__)
 viber = Api(BotConfiguration(
     name='CinemaCity',
     avatar='https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzTmbvZUpF1ocKtWIZoV9jHPQ7dXqFi0UGnA&usqp=CAU',
-    auth_token=config_data['bot_token']
+    auth_token=bot_token
 ))
 
 
