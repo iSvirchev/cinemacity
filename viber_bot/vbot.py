@@ -30,7 +30,7 @@ if platform == "win32":  # Using this for local work
     MOVIE_JSON_PATH = MOVIE_JSON_PATH.replace('/', '\\')
 
 f1 = open(CONFIG_PATH, 'r')
-bot_token = f1.read().replace('X-Viber-Auth-Token:', '')
+bot_token = f1.read().replace('X-Viber-Auth-Token:', '').strip()
 f1.close()
 
 f2 = open(MOVIE_JSON_PATH)
