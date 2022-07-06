@@ -161,7 +161,11 @@ def incoming():
 
         sender_id = viber_request.sender.id
         message = viber_request.message.text
-        logger.info("MSG received: '%s' from SENDER_ID: %s" % (message, sender_id))
+        logger.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
+
+        if sender_id not in user_sel_day:
+            logger.info("Setting TODAY as a default day for the new SENDER_ID: '%s'" % sender_id)
+            user_sel_day[sender_id] = today
 
         if message.lower() == 'dates':
             viber.send_messages(sender_id, [
