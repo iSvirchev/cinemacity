@@ -174,6 +174,8 @@ def incoming():
                 selected_day = days[1]
             else:
                 selected_day = message
+
+            logger.info("User has selected a new day: " + selected_day)
             reply = generate_movies_response(selected_day)
             kb = generate_movie_keyboard(selected_day)
 
@@ -181,6 +183,7 @@ def incoming():
                 TextMessage(text=reply, keyboard=kb)
             ])
         elif message in movies_data[selected_day]:  # message here equals the name of the movie
+            logger.info('Will send info about %s on date %s.' % (message, selected_day))
             reply = gen_movie_resp(selected_day, message)
             poster = movies_data[selected_day][message]['poster_link']
             viber.send_messages(sender_id, [
