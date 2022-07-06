@@ -144,7 +144,7 @@ def gen_movie_resp(day, movie):
     return m_resp
 
 
-selected_day = today
+user_sel_day = {}
 
 
 @app.route('/', methods=['POST'])
@@ -157,7 +157,7 @@ def incoming():
     viber_request = viber.parse_request(request.get_data())
 
     if isinstance(viber_request, ViberMessageRequest):
-        global selected_day  # exporting a global variable containing the day that we clicked
+        global user_sel_day  # exporting a global variable containing the day that we clicked
 
         sender_id = viber_request.sender.id
         message = viber_request.message.text
@@ -170,23 +170,24 @@ def incoming():
         elif message in movies_data or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
             if message.lower() == 'today':
-                selected_day = today
+                user_sel_day[sender_id] = today
             elif message.lower() == 'tomorrow':
-                selected_day = days[1]
+                user_sel_day[sender_id] = days[1]
             else:
-                selected_day = message
+                user_sel_day[sender_id] = message
 
-            logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, selected_day))
-            reply = generate_movies_response(selected_day)
-            kb = generate_movie_keyboard(selected_day)
+            logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, user_sel_day[sender_id]))
+            reply = generate_movies_response(user_sel_day[sender_id])
+            kb = generate_movie_keyboard(user_sel_day[sender_id])
 
             viber.send_messages(sender_id, [
                 TextMessage(text=reply, keyboard=kb)
             ])
-        elif message in movies_data[selected_day]:  # message here equals the name of the movie
-            logger.info("SENDER_ID: '%s' selected movie '%s' for day '%s'" % (sender_id, message, selected_day))
-            reply = gen_movie_resp(selected_day, message)
-            poster = movies_data[selected_day][message]['poster_link']
+        elif message in movies_data[user_sel_day[sender_id]]:  # message here equals the name of the movie
+            logger.info(
+                "SENDER_ID: '%s' selected movie '%s' for day '%s'" % (sender_id, message, user_sel_day[sender_id]))
+            reply = gen_movie_resp(user_sel_day[sender_id], message)
+            poster = movies_data[user_sel_day[sender_id]][message]['poster_link']
             viber.send_messages(sender_id, [
                 PictureMessage(text=reply, media=poster)
             ])
