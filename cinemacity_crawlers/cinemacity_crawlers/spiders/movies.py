@@ -29,7 +29,7 @@ class MoviesSpider(scrapy.Spider):
         resp_data = json.loads(response.text)
         dates = resp_data['body']['dates']
 
-        dates.reverse() # we need to reverse the list as the spider would write the data to .json from end->beginning
+        dates.reverse()  # we need to reverse the list as the spider would write the data to .json from end->beginning
 
         for date in dates:
             url = '%s/quickbook/10106/film-events/in-cinema/%s/at-date/%s?attr=&lang=en_GB' % (
@@ -47,7 +47,7 @@ class MoviesSpider(scrapy.Spider):
 
         for movie in all_movies:
             movie_id = movie['id']
-            poster_link = movie['posterLink']  # posters can end in -sm -md -lg depending on size - might need 'sm'
+            poster_link = movie['posterLink'].replace('md', 'sm')  # posters can end in -sm -md -lg depending on size
             movie_name = movie['name']
             movie_screenings = []
             for event in all_showings:
@@ -62,4 +62,3 @@ class MoviesSpider(scrapy.Spider):
             movies[movie_name] = movie
 
         yield {date: movies}
-

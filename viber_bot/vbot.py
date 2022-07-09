@@ -54,18 +54,38 @@ def convert_arr_to_dict(arr):
     return dictionary
 
 
-movies_data = dict(convert_arr_to_dict(movies_data))  # cast to dict() to take advantage of intellisense
+def remove_empty_elements(d):
+    #   recursively remove empty lists, empty dicts, or None elements from a dictionary
+    def empty(x):
+        return x is None or x == {} or x == []
 
-days = list(movies_data.keys())
+    if not isinstance(d, (dict, list)):
+        return d
+    elif isinstance(d, list):
+        return [v for v in (remove_empty_elements(v) for v in d) if not empty(v)]
+    else:
+        return {k: v for k, v in ((k, remove_empty_elements(v)) for k, v in d.items()) if not empty(v)}
+
+
+days_dictionary = dict(convert_arr_to_dict(movies_data))  # cast to dict() to take advantage of intellisense
+
+for day in days_dictionary:
+    for movie in days_dictionary[day]:
+        if not days_dictionary[day][movie]['movie_screenings']:  # if no movie_screenings - we want to remove the movie
+            days_dictionary[day][movie].pop('poster_link')  # remove the poster_link to make the delete recursion work
+days_dictionary = remove_empty_elements(days_dictionary)
+
+days = list(days_dictionary.keys())
+
 dates_resp = 'Which day are you interested in?\n'
-for data in movies_data:
-    dates_resp = dates_resp + '\n' + data
+for day_resp in days_dictionary:
+    dates_resp = dates_resp + '\n' + day_resp
 
 
-def generate_movies_response(day):
-    movies_resp = '*Movies currently in cinema for date %s*\n' % day
-    for movie in movies_data[day]:
-        movies_resp = movies_resp + '\n' + movie
+def generate_movies_response(movies_resp_day):
+    movies_resp = '*Movies currently in cinema for date %s*\n' % movies_resp_day
+    for movie_resp in days_dictionary[movies_resp_day]:
+        movies_resp = movies_resp + '\n' + movie_resp
     return movies_resp
 
 
@@ -107,7 +127,7 @@ def generate_btn_keyboard(days_arr):
 days_kb = generate_btn_keyboard(days)
 
 
-def generate_movie_keyboard(day):
+def generate_movie_keyboard(movie_kb_day):
     keyboard = {
         "Type": "keyboard",
         "Buttons": []
@@ -124,7 +144,7 @@ def generate_movie_keyboard(day):
         "Text": "<add_btn_txt>"
     }
 
-    for m_name, m_value in movies_data[day].items():
+    for m_name, m_value in days_dictionary[movie_kb_day].items():
         m_poster = m_value['poster_link']
 
         day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
@@ -137,9 +157,9 @@ def generate_movie_keyboard(day):
     return keyboard
 
 
-def gen_movie_resp(day, movie):
-    m_resp = 'Screenings of movie *%s* on *%s*\n\n' % (movie, day)
-    screenings = movies_data[day][movie]['movie_screenings']
+def gen_movie_resp(movie_resp_day, movie_resp_movie):
+    m_resp = 'Screenings of movie *%s* on *%s*\n\n' % (movie_resp_movie, movie_resp_day)
+    screenings = days_dictionary[movie_resp_day][movie_resp_movie]['movie_screenings']
     m_resp = m_resp + '\n'.join(screenings)
     return m_resp
 
@@ -171,7 +191,7 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text=dates_resp, keyboard=days_kb)
             ])
-        elif message in movies_data or message.lower() == 'today' or message.lower() == 'tomorrow':
+        elif message in days_dictionary or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
             if message.lower() == 'today':
                 user_sel_day[sender_id] = today
@@ -180,18 +200,24 @@ def incoming():
             else:
                 user_sel_day[sender_id] = message
 
-            logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, user_sel_day[sender_id]))
-            reply = generate_movies_response(user_sel_day[sender_id])
-            kb = generate_movie_keyboard(user_sel_day[sender_id])
+            sel_day = user_sel_day[sender_id]
+            logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
+            try:
+                reply = generate_movies_response(sel_day)
+                kb = generate_movie_keyboard(sel_day)
+            except KeyError as ke:
+                reply = "No movie screenings for the selected day: *%s*" % sel_day
+                kb = None
+                logger.info(reply)
 
             viber.send_messages(sender_id, [
                 TextMessage(text=reply, keyboard=kb)
             ])
-        elif message in movies_data[user_sel_day[sender_id]]:  # message here equals the name of the movie
+        elif message in days_dictionary[user_sel_day[sender_id]]:  # message here equals the name of the movie
             logger.info(
                 "SENDER_ID: '%s' selected movie '%s' for day '%s'" % (sender_id, message, user_sel_day[sender_id]))
             reply = gen_movie_resp(user_sel_day[sender_id], message)
-            poster = movies_data[user_sel_day[sender_id]][message]['poster_link']
+            poster = days_dictionary[user_sel_day[sender_id]][message]['poster_link']
             viber.send_messages(sender_id, [
                 PictureMessage(text=reply, media=poster)
             ])
