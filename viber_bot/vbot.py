@@ -3,7 +3,7 @@ import json
 import logging
 import os.path
 from sys import platform
-from viber_bot.user_func import DatabaseCommunication
+from user_func import DatabaseCommunication
 
 from flask import Flask, request, Response
 from viberbot import Api
