@@ -42,3 +42,8 @@ class DatabaseCommunication:
     def set_today_4_all(self, selected_date):
         with self.conn:
             self.cursor.execute("UPDATE users SET selected_date=:selected_date", {'selected_date': selected_date})
+
+    def fetch_all_subscribed(self):
+        with self.conn:
+            self.cursor.execute("SELECT user_id FROM users WHERE subscribed=1")
+        return self.cursor.fetchall()
