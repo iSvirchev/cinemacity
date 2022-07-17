@@ -48,4 +48,4 @@ class DatabaseCommunication:
     def fetch_all_subscribed(self):
         with self.conn:
             self.cursor.execute("SELECT user_id FROM users WHERE subscribed=1")
-        return self.cursor.fetchall()
+        return self.cursor.fetchall()[0]

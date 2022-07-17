@@ -2,6 +2,9 @@ import datetime
 import json
 import logging
 from sys import platform
+
+import requests
+
 from user_func import DatabaseCommunication
 
 from flask import Flask, request, Response
@@ -45,6 +48,10 @@ f2 = open(MOVIES_JSON_PATH)
 movies_data = json.load(f2)
 f2.close()
 
+f3 = open(MOVIES_YESTERDAY_JSON_PATH)
+movies_data_yesterday = json.load(f3)
+f3.close()
+
 app = Flask(__name__)
 viber = Api(BotConfiguration(
     name='CinemaCity',
@@ -58,8 +65,18 @@ def convert_arr_to_dict(arr):
     for e in arr:
         for k, v in e.items():
             dictionary[k] = v
-
     return dictionary
+
+
+# cast to dict() to take advantage of intellisense
+days_dictionary_yesterday = dict(convert_arr_to_dict(movies_data_yesterday))
+
+# We extract all movies ONLY from yesterday (there is no need to extract from other dates from this json file)
+yesterday_movies_set = set()
+for day in days_dictionary_yesterday:
+    for movie in days_dictionary_yesterday[day]:
+        yesterday_movies_set.add(movie)
+    break  # we break the loop after the first extracted day
 
 
 def remove_empty_elements(d):
@@ -76,12 +93,39 @@ def remove_empty_elements(d):
 
 
 days_dictionary = dict(convert_arr_to_dict(movies_data))  # cast to dict() to take advantage of intellisense
-
+today_movies_set = set()  # we extract ALL the movies from the whole week into this set
 for day in days_dictionary:
     for movie in days_dictionary[day]:
+        today_movies_set.add(movie)
         if not days_dictionary[day][movie]['movie_screenings']:  # if no movie_screenings - we want to remove the movie
             days_dictionary[day][movie].pop('poster_link')  # remove the poster_link to make the delete recursion work
-days_dictionary = remove_empty_elements(days_dictionary)
+
+days_dictionary = remove_empty_elements(days_dictionary)  # this removes movies and days with no showings (pre-sales)
+
+
+def broadcast_new_movies(diff_set):
+    broadcast_msg = "(video) ```New movies in cinema this week!``` (video)\n\n"
+
+    for new_movie in diff_set:
+        broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
+
+    broadcast_list = list(db.fetch_all_subscribed())  # casting to a list as the query returns a tuple
+    broadcast_data = {
+        'type': 'text',
+        'text': broadcast_msg,
+        'broadcast_list': list(broadcast_list)
+    }
+    resp = requests.post('https://chatapi.viber.com/pa/broadcast_message', data=json.dumps(broadcast_data),
+                         headers={"X-Viber-Auth-Token": bot_token})
+    if resp.text.index('"status":0') > -1:  # status:0 is a successful broadcast
+        logger.info("Successfully broadcasted a message!")
+
+
+# Return a set that contains the items that only exist in set 1, and not in set 2:
+new_movies_set = today_movies_set.difference(yesterday_movies_set)
+
+if len(new_movies_set) != 0:
+    broadcast_new_movies(new_movies_set)
 
 days = list(days_dictionary.keys())
 
