@@ -17,28 +17,31 @@ logging.basicConfig(filename='vbot.log',
                     format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
 logger = logging.getLogger()
 
-db = DatabaseCommunication('vbot.db')
-
+DB_PATH = 'misc/vbot.db'
 CONFIG_PATH = 'misc/token_file'
-MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
+MOVIES_JSON_PATH = '../cinemacity_crawlers/movies.json'
+MOVIES_YESTERDAY_JSON_PATH = '../cinemacity_crawlers/movies_yesterday.json'
+
+logger.info('OS is: ' + platform)
+if platform == "win32":  # Using this for local work
+    CONFIG_PATH = CONFIG_PATH.replace('/', '\\')
+    MOVIES_JSON_PATH = MOVIES_JSON_PATH.replace('/', '\\')
+    MOVIES_YESTERDAY_JSON_PATH = MOVIES_YESTERDAY_JSON_PATH.replace('/', '\\')
+    DB_PATH = DB_PATH.replace('/', '\\')
 
 datetime_now = datetime.datetime.now()
 today = datetime_now.strftime('%d %b')
 logger.info('Today is: ' + today)
 
+db = DatabaseCommunication(DB_PATH)
 db.set_today_4_all(today)
 logger.info('All users default date has been set to today!')
-
-logger.info('OS is: ' + platform)
-if platform == "win32":  # Using this for local work
-    CONFIG_PATH = CONFIG_PATH.replace('/', '\\')
-    MOVIE_JSON_PATH = MOVIE_JSON_PATH.replace('/', '\\')
 
 f1 = open(CONFIG_PATH, 'r')
 bot_token = f1.read().replace('X-Viber-Auth-Token:', '').strip()
 f1.close()
 
-f2 = open(MOVIE_JSON_PATH)
+f2 = open(MOVIES_JSON_PATH)
 movies_data = json.load(f2)
 f2.close()
 

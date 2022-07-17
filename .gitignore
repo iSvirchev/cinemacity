@@ -1,5 +1,6 @@
 .idea
 cinemacity_crawlers/movies.json
+cinemacity_crawlers/movies_yesterday.json
 viber_bot/misc
 
 # Byte-compiled / optimized / DLL files
