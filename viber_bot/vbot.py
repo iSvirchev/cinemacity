@@ -113,12 +113,13 @@ def broadcast_new_movies(diff_set):
     broadcast_data = {
         'type': 'text',
         'text': broadcast_msg,
-        'broadcast_list': list(broadcast_list)
+        'broadcast_list': broadcast_list
     }
     resp = requests.post('https://chatapi.viber.com/pa/broadcast_message', data=json.dumps(broadcast_data),
                          headers={"X-Viber-Auth-Token": bot_token})
     if resp.text.index('"status":0') > -1:  # status:0 is a successful broadcast
-        logger.info("Successfully broadcasted a message!")
+        logger.info("Successfully broadcasted a message to the following users:")
+        logger.info(str(broadcast_list))
 
 
 # Return a set that contains the items that only exist in set 1, and not in set 2:
