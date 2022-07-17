@@ -3,6 +3,7 @@ import json
 import logging
 import os.path
 from sys import platform
+from viber_bot.user_func import DatabaseCommunication
 
 from flask import Flask, request, Response
 from viberbot import Api
@@ -17,12 +18,16 @@ logging.basicConfig(filename='vbot.log',
                     format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
 logger = logging.getLogger()
 
+db = DatabaseCommunication()
+
 CONFIG_PATH = 'misc/token_file'
 MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
 
 datetime_now = datetime.datetime.now()
 today = datetime_now.strftime('%d %b')
 logger.info('Today is: ' + today)
+db.set_today_4_all(today)
+logger.info('All users default date has been set to today!')
 
 logger.info('OS is: ' + platform)
 if platform == "win32":  # Using this for local work
@@ -164,9 +169,6 @@ def gen_movie_resp(movie_resp_day, movie_resp_movie):
     return m_resp
 
 
-user_sel_day = {}
-
-
 @app.route('/', methods=['POST'])
 def incoming():
     logger.debug("Received request! Post data: {0}".format(request.get_data()))
@@ -177,15 +179,17 @@ def incoming():
     viber_request = viber.parse_request(request.get_data())
 
     if isinstance(viber_request, ViberMessageRequest):
-        global user_sel_day  # exporting a global variable containing the day that we clicked
-
+        sender_name = viber_request.sender.name
         sender_id = viber_request.sender.id
+
         message = viber_request.message.text
         logger.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
 
-        if sender_id not in user_sel_day:
-            logger.info("Setting TODAY as a default day for the new SENDER_ID: '%s'" % sender_id)
-            user_sel_day[sender_id] = today
+        if db.fetch_user(sender_id) is None:  # Check if we have the user in DB and add it if we do not
+            logger.info("Adding a new user to DB.")
+            db.add_user(sender_id, sender_name, today)
+
+        sender_sel_date = db.fetch_user_date(sender_id)
 
         if message.lower() == 'dates':
             viber.send_messages(sender_id, [
@@ -194,13 +198,13 @@ def incoming():
         elif message in days_dictionary or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
             if message.lower() == 'today':
-                user_sel_day[sender_id] = today
+                sel_day = today
             elif message.lower() == 'tomorrow':
-                user_sel_day[sender_id] = days[1]
+                sel_day = days[1]
             else:
-                user_sel_day[sender_id] = message
+                sel_day = message
 
-            sel_day = user_sel_day[sender_id]
+            db.set_user_date(sender_id, sel_day)
             logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
                 reply = generate_movies_response(sel_day)
@@ -213,11 +217,11 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text=reply, keyboard=kb)
             ])
-        elif message in days_dictionary[user_sel_day[sender_id]]:  # message here equals the name of the movie
+        elif message in days_dictionary[sender_sel_date]:  # message here equals the name of the movie
             logger.info(
-                "SENDER_ID: '%s' selected movie '%s' for day '%s'" % (sender_id, message, user_sel_day[sender_id]))
-            reply = gen_movie_resp(user_sel_day[sender_id], message)
-            poster = days_dictionary[user_sel_day[sender_id]][message]['poster_link']
+                "SENDER_ID: '%s' selected movie '%s' for day '%s'" % (sender_id, message, sender_sel_date))
+            reply = gen_movie_resp(sender_sel_date, message)
+            poster = days_dictionary[sender_sel_date][message]['poster_link']
             viber.send_messages(sender_id, [
                 PictureMessage(text=reply, media=poster)
             ])
