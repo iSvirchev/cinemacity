@@ -2,19 +2,21 @@ import sqlite3
 
 
 class DatabaseCommunication:
-    # conn = sqlite3.connect(':memory:', check_same_thread=False)  # runtime DB used for debugging
-    conn = sqlite3.connect('vbot.db', check_same_thread=False)
-    cursor = conn.cursor()
-
     # SQLite does not have a separate Boolean storage class.
     # Instead, Boolean values are stored as integers 0 (false) and 1 (true).
-    def __init__(self):
+    def __init__(self, db_path):
+        # self.conn = sqlite3.connect(':memory:', check_same_thread=False)  # runtime DB used for debugging
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.cursor = self.conn.cursor()
+        self.create_users_table()
+
+    def create_users_table(self):
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS users (
-                            user_id text primary key,
-                            user_name text,
-                            subscribed integer default true,
-                            selected_date text default null
-                            )""")
+                                    user_id text primary key,
+                                    user_name text,
+                                    subscribed integer default true,
+                                    selected_date text default null
+                                    )""")
 
     def add_user(self, user_id, user_name, selected_date):
         with self.conn:

@@ -17,7 +17,7 @@ logging.basicConfig(filename='vbot.log',
                     format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
 logger = logging.getLogger()
 
-db = DatabaseCommunication()
+db = DatabaseCommunication('vbot.db')
 
 CONFIG_PATH = 'misc/token_file'
 MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
