@@ -18,7 +18,7 @@ class DatabaseCommunication:
 
     def add_user(self, user_id, user_name, selected_date):
         with self.conn:
-            self.cursor.execute("""INSERT INTO users(user_id, user_name, selected_date) 
+            self.cursor.execute("""INSERT OR IGNORE INTO users(user_id, user_name, selected_date) 
                                 VALUES (:user_id, :user_name, :selected_date)""",
                                 {'user_id': user_id, 'user_name': user_name, 'selected_date': selected_date})
 

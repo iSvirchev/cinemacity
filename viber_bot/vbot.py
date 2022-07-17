@@ -1,7 +1,6 @@
 import datetime
 import json
 import logging
-import os.path
 from sys import platform
 from user_func import DatabaseCommunication
 
@@ -26,6 +25,7 @@ MOVIE_JSON_PATH = '../cinemacity_crawlers/movies.json'
 datetime_now = datetime.datetime.now()
 today = datetime_now.strftime('%d %b')
 logger.info('Today is: ' + today)
+
 db.set_today_4_all(today)
 logger.info('All users default date has been set to today!')
 
@@ -184,10 +184,7 @@ def incoming():
 
         message = viber_request.message.text
         logger.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
-
-        if db.fetch_user(sender_id) is None:  # Check if we have the user in DB and add it if we do not
-            logger.info("Adding a new user to DB.")
-            db.add_user(sender_id, sender_name, today)
+        db.add_user(sender_id, sender_name, today)
 
         sender_sel_date = db.fetch_user_date(sender_id)
 
