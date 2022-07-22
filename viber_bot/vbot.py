@@ -54,12 +54,11 @@ def convert_arr_to_dict(arr):
 # cast to dict() to take advantage of intellisense
 days_dictionary_yesterday = dict(convert_arr_to_dict(movies_data_yesterday))
 
-# We extract all movies ONLY from yesterday (there is no need to extract from other dates from this json file)
+# We extract all the movies from yesterday's JSON file
 yesterday_movies_set = set()
 for day in days_dictionary_yesterday:
     for movie in days_dictionary_yesterday[day]:
         yesterday_movies_set.add(movie)
-    break  # we break the loop after the first extracted day
 
 
 def remove_empty_elements(d):
@@ -106,10 +105,10 @@ def broadcast_new_movies(diff_set):
 
 
 # Return a set that contains the items that only exist in set 1, and not in set 2:
-new_movies_set = today_movies_set.difference(yesterday_movies_set)
+broadcast_movies_set = today_movies_set.difference(yesterday_movies_set)
 
-if len(new_movies_set) != 0:
-    broadcast_new_movies(new_movies_set)
+if len(broadcast_movies_set) != 0:
+    broadcast_new_movies(broadcast_movies_set)
 
 days = list(days_dictionary.keys())
 
