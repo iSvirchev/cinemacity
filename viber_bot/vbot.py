@@ -14,7 +14,7 @@ from viberbot.api.messages import *
 from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFailedRequest, ViberMessageRequest, \
     ViberSubscribedRequest
 
-logging.basicConfig(filename='vbot.log',
+logging.basicConfig(filename=paths.LOG_PATH,
                     filemode='w',
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
