@@ -95,7 +95,7 @@ def broadcast_new_movies(diff_set):
     for new_movie in diff_set:
         broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
 
-    broadcast_list = list(db.fetch_all_subscribed())  # casting to a list as the query returns a tuple
+    broadcast_list = db.fetch_all_subscribed()
     broadcast_data = {
         'type': 'text',
         'text': broadcast_msg,

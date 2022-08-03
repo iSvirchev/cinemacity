@@ -47,5 +47,9 @@ class DatabaseCommunication:
 
     def fetch_all_subscribed(self):
         with self.conn:
-            self.cursor.execute("SELECT user_id FROM users WHERE subscribed=1")
-        return self.cursor.fetchall()[0]
+            result = self.cursor.execute("SELECT user_id FROM users WHERE subscribed=1").fetchall()
+            return_list = []
+            for user in result:
+                return_list.append(user[0])  # 0 is the index of the user_id, if we select * rows - we use indices to
+                # access the other rows
+        return return_list
