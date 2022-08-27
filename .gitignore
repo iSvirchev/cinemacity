@@ -3,7 +3,7 @@ cinemacity_crawlers/movies.json
 cinemacity_crawlers/movies_yesterday.json
 viber_bot/misc
 viber_bot/logs
-
+vbot.db
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
