@@ -65,6 +65,7 @@ class MoviesSpider(scrapy.Spider):
                 yield scrapy.Request(url, callback=self.parse_movies)
 
     def parse_movies(self, response):
+        global date_dict, cinema_id
         resp_data = json.loads(response.text)
         body = resp_data['body']
         all_movies = body['films']
