@@ -61,14 +61,14 @@ class Responses:
             "Text": "<add_btn_txt>"
         }
 
-        for m_name, m_value in self.days_dictionary[movie_kb_day].items():
-            m_poster = m_value['poster_link']
+        for m_key, m_value in self.days_dictionary[movie_kb_day].items():
+            # m_poster = m_value['poster_link']
 
             day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
-            day_btn['ActionBody'] = m_name
+            day_btn['ActionBody'] = m_value['movie_name']
             # day_btn['Text'] = "<font size=\"12\">%s</font>" % m_name
-            day_btn['Text'] = m_name
-            day_btn['BgMedia'] = m_poster
+            day_btn['Text'] = m_value['movie_name']
+            # day_btn['BgMedia'] = m_poster
             keyboard['Buttons'].append(day_btn)
 
         return keyboard

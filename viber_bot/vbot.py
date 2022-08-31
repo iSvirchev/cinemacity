@@ -31,16 +31,6 @@ logger.info('All users default date has been set to today!')
 with open(paths.CONFIG_PATH, 'r') as f:
     bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
 
-cinemas = db.fetch_cinemas()
-
-for cinema_id in cinemas:
-    cinemas[cinema_id]['today_json'] = db.fetch_today_json(cinema_id)
-    cinemas[cinema_id]['yesterday_json'] = db.fetch_yesterday_json(cinema_id)
-print()
-
-movies_data_today = json.load(f)
-movies_data_yesterday = json.load(f)
-
 app = Flask(__name__)
 viber = Api(BotConfiguration(
     name='CinemaCity',
@@ -48,23 +38,28 @@ viber = Api(BotConfiguration(
     auth_token=bot_token
 ))
 
+cinemas = db.fetch_cinemas()
 
-def convert_arr_to_dict(arr):
-    dictionary = {}
-    for e in arr:
-        for k, v in e.items():
-            dictionary[k] = v
-    return dictionary
+for cinema_id in cinemas:
+    cinemas[cinema_id]['today_json'] = json.loads(db.fetch_today_json(cinema_id))
+    cinemas[cinema_id]['yesterday_json'] = json.loads(db.fetch_yesterday_json(cinema_id))
+    cinemas[cinema_id]['days'] = list(cinemas[cinema_id]['today_json'].keys())
+print()
+db.fetch_all_movies()
+# def convert_arr_to_dict(arr):
+#     dictionary = {}
+#     for e in arr:
+#         for k, v in e.items():
+#             dictionary[k] = v
+#     return dictionary
 
-
-# cast to dict() to take advantage of intellisense
-days_dictionary_yesterday = dict(convert_arr_to_dict(movies_data_yesterday))
-
-# We extract all the movies from yesterday's JSON file
-yesterday_movies_set = set()
-for day in days_dictionary_yesterday:
-    for movie in days_dictionary_yesterday[day]:
-        yesterday_movies_set.add(movie)
+# days_dictionary_yesterday = cinemas['1265']['yesterday_json']
+#
+# # We extract all the movies from yesterday's JSON file
+# yesterday_movies_set = set()
+# for day in days_dictionary_yesterday:
+#     for movie in days_dictionary_yesterday[day]:
+#         yesterday_movies_set.add(movie)
 
 
 def remove_empty_elements(d):
@@ -80,43 +75,43 @@ def remove_empty_elements(d):
         return {k: v for k, v in ((k, remove_empty_elements(v)) for k, v in d.items()) if not empty(v)}
 
 
-days_dictionary = dict(convert_arr_to_dict(movies_data_today))  # cast to dict() to take advantage of intellisense
+days_dictionary = cinemas['1265']['today_json']
 today_movies_set = set()  # we extract ALL the movies from the whole week into this set
 for day in days_dictionary:
     for movie in days_dictionary[day]:
         today_movies_set.add(movie)
         if not days_dictionary[day][movie]['movie_screenings']:  # if no movie_screenings - we want to remove the movie
-            days_dictionary[day][movie].pop('poster_link')  # remove the poster_link to make the delete recursion work
+            days_dictionary[day][movie].pop('booking_link')  # remove the booking_link to make the delete recursion work
+            days_dictionary[day][movie].pop('movie_name')  # remove the movie_name to make the delete recursion work
 
 days_dictionary = remove_empty_elements(days_dictionary)  # this removes movies and days with no showings (pre-sales)
 
 rsp = Responses(days_dictionary)
 
-
-def broadcast_new_movies(diff_set):
-    broadcast_msg = "(video) ```New movies in cinema this week!``` (video)\n\n"
-
-    for new_movie in diff_set:
-        broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
-
-    broadcast_list = db.fetch_all_subscribed()
-    broadcast_data = {
-        'type': 'text',
-        'text': broadcast_msg,
-        'broadcast_list': broadcast_list
-    }
-    resp = requests.post('https://chatapi.viber.com/pa/broadcast_message', data=json.dumps(broadcast_data),
-                         headers={"X-Viber-Auth-Token": bot_token})
-    if resp.text.index('"status":0') > -1:  # status:0 is a successful broadcast
-        logger.info("Successfully broadcasted a message to the following users:")
-        logger.info(str(broadcast_list))
-
-
-# Return a set that contains the items that only exist in set 1, and not in set 2:
-broadcast_movies_set = today_movies_set.difference(yesterday_movies_set)
-
-if len(broadcast_movies_set) != 0:
-    broadcast_new_movies(broadcast_movies_set)
+# def broadcast_new_movies(diff_set):
+#     broadcast_msg = "(video) ```New movies in cinema this week!``` (video)\n\n"
+#
+#     for new_movie in diff_set:
+#         broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
+#
+#     broadcast_list = db.fetch_all_subscribed()
+#     broadcast_data = {
+#         'type': 'text',
+#         'text': broadcast_msg,
+#         'broadcast_list': broadcast_list
+#     }
+#     resp = requests.post('https://chatapi.viber.com/pa/broadcast_message', data=json.dumps(broadcast_data),
+#                          headers={"X-Viber-Auth-Token": bot_token})
+#     if resp.text.index('"status":0') > -1:  # status:0 is a successful broadcast
+#         logger.info("Successfully broadcasted a message to the following users:")
+#         logger.info(str(broadcast_list))
+#
+#
+# # Return a set that contains the items that only exist in set 1, and not in set 2:
+# broadcast_movies_set = today_movies_set.difference(yesterday_movies_set)
+#
+# if len(broadcast_movies_set) != 0:
+#     broadcast_new_movies(broadcast_movies_set)
 
 days = list(days_dictionary.keys())
 

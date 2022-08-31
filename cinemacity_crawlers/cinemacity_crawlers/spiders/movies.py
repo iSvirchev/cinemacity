@@ -94,9 +94,10 @@ class MoviesSpider(scrapy.Spider):
                     # 'trailer_link': trailer_link,
                 }
 
-            self.cursor.execute("INSERT OR IGNORE INTO movies(movie_id, poster_link, movie_link,trailer_link) "
-                                "VALUES (:movie_id, :poster_link, :movie_link, :trailer_link);", {
+            self.cursor.execute("INSERT OR IGNORE INTO movies(movie_id, movie_name, poster_link, movie_link, trailer_link) "
+                                "VALUES (:movie_id, :movie_name, :poster_link, :movie_link, :trailer_link);", {
                                     'movie_id': movie_id,
+                                    'movie_name': movie_name,
                                     'poster_link': poster_link,
                                     'movie_link': movie_link,
                                     'trailer_link': trailer_link

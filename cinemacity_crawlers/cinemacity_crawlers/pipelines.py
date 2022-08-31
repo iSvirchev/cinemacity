@@ -39,6 +39,7 @@ class CinemacityCrawlersPipeline:
                                 )""")
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS movies(
                                 movie_id TEXT PRIMARY KEY,
+                                movie_name TEXT NOT NULL,
                                 poster_link TEXT NOT NULL,
                                 movie_link TEXT NOT NULL,
                                 trailer_link TEXT

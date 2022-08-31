@@ -1,6 +1,18 @@
 import sqlite3
 
 
+def convert_result_to_dict(rows, headers):
+    items = {}
+    for row in rows:
+        row_id = row[0]
+        info = {}
+        for i in range(len(headers)):
+            header_name = headers[i][0]
+            info[header_name] = row[i]
+        items[row_id] = info
+    return items
+
+
 class DatabaseCommunication:
     # SQLite does not have a separate Boolean storage class.
     # Instead, Boolean values are stored as integers 0 (false) and 1 (true).
@@ -57,16 +69,9 @@ class DatabaseCommunication:
 
     def fetch_cinemas(self):
         with self.conn:
-            result = self.cursor.execute("""SELECT cinema_id, cinema_name, cinema_image_url FROM cinemas""").fetchall()
-            cinemas = {}
-            for cinema in result:
-                cinema_id = cinema[0]
-                info = {
-                    'cinema_name': cinema[1],
-                    'cinema_image_url': cinema[2]
-                }
-                cinemas[cinema_id] = info
-        return cinemas
+            rows = self.cursor.execute("""SELECT cinema_id, cinema_name, cinema_image_url FROM cinemas""").fetchall()
+            headers = self.cursor.description
+        return convert_result_to_dict(rows, headers)
 
     def fetch_today_json(self, cinema_id):
         with self.conn:
@@ -79,3 +84,9 @@ class DatabaseCommunication:
             result = self.cursor.execute("""SELECT json FROM yesterday WHERE cinema_id=:cinema_id""",
                                          {'cinema_id': cinema_id}).fetchone()
         return result[0]
+
+    def fetch_all_movies(self):
+        with self.conn:
+            rows = self.cursor.execute("""SELECT * FROM movies""").fetchall()
+            headers = self.cursor.description
+        return convert_result_to_dict(rows, headers)
