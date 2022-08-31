@@ -15,6 +15,7 @@ class DatabaseCommunication:
                                     user_id text primary key,
                                     user_name text,
                                     subscribed integer default true,
+                                    selected_cinema_id text default null,
                                     selected_date text default null
                                     )""")
 
