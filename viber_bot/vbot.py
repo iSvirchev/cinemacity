@@ -25,17 +25,21 @@ today = datetime_now.strftime('%d %b')
 logger.info('Today is: ' + today)
 
 db = DatabaseCommunication(paths.DB_PATH)
-db.set_today_4_all(today)
+db.set_today_4_all_users(today)
 logger.info('All users default date has been set to today!')
 
 with open(paths.CONFIG_PATH, 'r') as f:
     bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
 
-with open(paths.MOVIES_JSON_PATH, 'r') as f:
-    movies_data = json.load(f)
+cinemas = db.fetch_cinemas()
 
-with open(paths.MOVIES_YESTERDAY_JSON_PATH, 'r') as f:
-    movies_data_yesterday = json.load(f)
+for cinema_id in cinemas:
+    cinemas[cinema_id]['today_json'] = db.fetch_today_json(cinema_id)
+    cinemas[cinema_id]['yesterday_json'] = db.fetch_yesterday_json(cinema_id)
+print()
+
+movies_data_today = json.load(f)
+movies_data_yesterday = json.load(f)
 
 app = Flask(__name__)
 viber = Api(BotConfiguration(
@@ -76,7 +80,7 @@ def remove_empty_elements(d):
         return {k: v for k, v in ((k, remove_empty_elements(v)) for k, v in d.items()) if not empty(v)}
 
 
-days_dictionary = dict(convert_arr_to_dict(movies_data))  # cast to dict() to take advantage of intellisense
+days_dictionary = dict(convert_arr_to_dict(movies_data_today))  # cast to dict() to take advantage of intellisense
 today_movies_set = set()  # we extract ALL the movies from the whole week into this set
 for day in days_dictionary:
     for movie in days_dictionary[day]:

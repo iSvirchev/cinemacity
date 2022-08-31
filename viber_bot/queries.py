@@ -42,7 +42,7 @@ class DatabaseCommunication:
             self.cursor.execute("SELECT * FROM users WHERE user_id=:user_id", {'user_id': user_id})
         return self.cursor.fetchone()
 
-    def set_today_4_all(self, selected_date):
+    def set_today_4_all_users(self, selected_date):
         with self.conn:
             self.cursor.execute("UPDATE users SET selected_date=:selected_date", {'selected_date': selected_date})
 
@@ -54,3 +54,28 @@ class DatabaseCommunication:
                 return_list.append(user[0])  # 0 is the index of the user_id, if we select * rows - we use indices to
                 # access the other rows
         return return_list
+
+    def fetch_cinemas(self):
+        with self.conn:
+            result = self.cursor.execute("""SELECT cinema_id, cinema_name, cinema_image_url FROM cinemas""").fetchall()
+            cinemas = {}
+            for cinema in result:
+                cinema_id = cinema[0]
+                info = {
+                    'cinema_name': cinema[1],
+                    'cinema_image_url': cinema[2]
+                }
+                cinemas[cinema_id] = info
+        return cinemas
+
+    def fetch_today_json(self, cinema_id):
+        with self.conn:
+            result = self.cursor.execute("""SELECT json FROM today WHERE cinema_id=:cinema_id""",
+                                         {'cinema_id': cinema_id}).fetchone()
+        return result[0]
+
+    def fetch_yesterday_json(self, cinema_id):
+        with self.conn:
+            result = self.cursor.execute("""SELECT json FROM yesterday WHERE cinema_id=:cinema_id""",
+                                         {'cinema_id': cinema_id}).fetchone()
+        return result[0]

@@ -88,10 +88,10 @@ class MoviesSpider(scrapy.Spider):
                 movie = {
                     'movie_name': movie_name,
                     'movie_screenings': movie_screenings,
-                    'poster_link': poster_link,
-                    'movie_link': movie_link,
+                    # 'poster_link': poster_link,
+                    # 'movie_link': movie_link,
                     'booking_link': booking_link,
-                    'trailer_link': trailer_link,
+                    # 'trailer_link': trailer_link,
                 }
 
             self.cursor.execute("INSERT OR IGNORE INTO movies(movie_id, poster_link, movie_link,trailer_link) "
