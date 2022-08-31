@@ -3,7 +3,7 @@ import json
 import logging
 import requests
 
-from user_func import DatabaseCommunication
+from queries import DatabaseCommunication
 from responses import Responses
 import paths
 
