@@ -17,12 +17,10 @@ output_dates = {}
 cinemas = {}
 
 
-# self.cursor.execute("INSERT OR IGNORE INTO cinemas(cinema_id) VALUES (:cinema_id)", {'cinema_id': cinema_id})
-
 class MoviesSpider(scrapy.Spider):
     name = 'movies'
     start_urls = ['https://www.cinemacity.bg/']
-    conn = sqlite3.connect('../vbot.db')
+    conn = sqlite3.connect('../vbot.db')  # this path is probably invalid in UNIX
     cursor = conn.cursor()
 
     def parse(self, response):
@@ -38,10 +36,6 @@ class MoviesSpider(scrapy.Spider):
             cinema_id = cinema['id']
             cinema_name = cinema['displayName']
             cinema_image_url = cinema['imageUrl']
-            self.cursor.execute("""CREATE TABLE IF NOT EXISTS cinemas (
-                                    cinema_id NUMERIC PRIMARY KEY,
-                                    cinema_name TEXT NOT NULL,
-                                    cinema_image_url TEXT NOT NULL)""")
             self.cursor.execute("INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, cinema_image_url) "
                                 "VALUES (:cinema_id, :cinema_name, :cinema_image_url)",
                                 {'cinema_id': cinema_id,
@@ -100,12 +94,6 @@ class MoviesSpider(scrapy.Spider):
                     'trailer_link': trailer_link,
                 }
 
-            self.cursor.execute("""CREATE TABLE IF NOT EXISTS movies(
-            movie_id TEXT PRIMARY KEY,
-            poster_link TEXT NOT NULL,
-            movie_link TEXT NOT NULL,
-            trailer_link TEXT           
-            )""")
             self.cursor.execute("INSERT OR IGNORE INTO movies(movie_id, poster_link, movie_link,trailer_link) "
                                 "VALUES (:movie_id, :poster_link, :movie_link, :trailer_link);", {
                                     'movie_id': movie_id,
