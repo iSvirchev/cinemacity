@@ -39,7 +39,7 @@ class MoviesSpider(scrapy.Spider):
             cinema_name = cinema['displayName']
             cinema_image_url = cinema['imageUrl']
             self.cursor.execute("""CREATE TABLE IF NOT EXISTS cinemas (
-                                    cinema_id TEXT PRIMARY KEY,
+                                    cinema_id NUMERIC PRIMARY KEY,
                                     cinema_name TEXT NOT NULL,
                                     cinema_image_url TEXT NOT NULL)""")
             self.cursor.execute("INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, cinema_image_url) "

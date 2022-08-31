@@ -33,12 +33,12 @@ class CinemacityCrawlersPipeline:
 
     def create_tables(self):
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS today (
-                                        cinema_id TEXT PRIMARY KEY,
+                                        cinema_id NUMERIC PRIMARY KEY,
                                         json TEXT,
                                         FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id) 
                                         )""")
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS yesterday (
-                                        cinema_id TEXT PRIMARY KEY,
+                                        cinema_id NUMERIC PRIMARY KEY,
                                         json TEXT,
                                         FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id) 
                                         )""")
