@@ -14,7 +14,7 @@ from viberbot.api.messages import *
 from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFailedRequest, ViberMessageRequest, \
     ViberSubscribedRequest
 
-logging.basicConfig(filename='vbot.log',
+logging.basicConfig(filename=paths.LOG_PATH,
                     filemode='w',
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
@@ -95,7 +95,7 @@ def broadcast_new_movies(diff_set):
     for new_movie in diff_set:
         broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
 
-    broadcast_list = list(db.fetch_all_subscribed())  # casting to a list as the query returns a tuple
+    broadcast_list = db.fetch_all_subscribed()
     broadcast_data = {
         'type': 'text',
         'text': broadcast_msg,
