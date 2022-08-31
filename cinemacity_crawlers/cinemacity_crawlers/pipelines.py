@@ -15,7 +15,7 @@ cinemas_to_dump = {}
 
 class CinemacityCrawlersPipeline:
     def __init__(self):
-        self.conn = sqlite3.connect('../vbot.db')
+        self.conn = sqlite3.connect('../vbot.db')  # this path is probably invalid in UNIX
         self.cursor = self.conn.cursor()
         self.create_tables()
 
@@ -32,16 +32,27 @@ class CinemacityCrawlersPipeline:
         self.conn.close()
 
     def create_tables(self):
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS cinemas (
+                                cinema_id TEXT PRIMARY KEY,
+                                cinema_name TEXT NOT NULL,
+                                cinema_image_url TEXT NOT NULL
+                                )""")
+        self.cursor.execute("""CREATE TABLE IF NOT EXISTS movies(
+                                movie_id TEXT PRIMARY KEY,
+                                poster_link TEXT NOT NULL,
+                                movie_link TEXT NOT NULL,
+                                trailer_link TEXT
+                                )""")
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS today (
-                                        cinema_id NUMERIC PRIMARY KEY,
-                                        json TEXT,
-                                        FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id) 
-                                        )""")
+                                cinema_id TEXT PRIMARY KEY,
+                                json TEXT,
+                                FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id)
+                                )""")
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS yesterday (
-                                        cinema_id NUMERIC PRIMARY KEY,
-                                        json TEXT,
-                                        FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id) 
-                                        )""")
+                                cinema_id TEXT PRIMARY KEY,
+                                json TEXT,
+                                FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id)
+                                )""")
 
     def fetch_cinemas(self):
         res = self.cursor.execute("SELECT cinema_id FROM cinemas").fetchall()
