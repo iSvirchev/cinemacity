@@ -90,22 +90,10 @@ class DatabaseCommunication:
                 # access the other rows
         return return_list
 
-    def fetch_today_json(self, cinema_id):
-        with self.conn:
-            result = self.cursor.execute("""SELECT json FROM today WHERE cinema_id=:cinema_id""",
-                                         {'cinema_id': cinema_id}).fetchone()
-        return result[0]
-
     def update_today_jsons(self, cinema_id, today_json):
         with self.conn:
-            self.cursor.execute("""UPDATE today SET json=:today_json WHERE cinema_id=:cinema_id""",
+            self.cursor.execute("""UPDATE cinemas SET today_json=:today_json WHERE cinema_id=:cinema_id""",
                                 {'cinema_id': cinema_id, 'today_json': today_json})
-
-    def fetch_yesterday_json(self, cinema_id):
-        with self.conn:
-            result = self.cursor.execute("""SELECT json FROM yesterday WHERE cinema_id=:cinema_id""",
-                                         {'cinema_id': cinema_id}).fetchone()
-        return result[0]
 
     def fetch_movies(self):
         with self.conn:
@@ -136,7 +124,7 @@ class DatabaseCommunication:
 
     def fetch_cinemas(self):
         with self.conn:
-            rows = self.cursor.execute("""SELECT cinema_id, cinema_name, cinema_image_url FROM cinemas""").fetchall()
+            rows = self.cursor.execute("""SELECT * FROM cinemas""").fetchall()
             headers = self.cursor.description
         return convert_result_to_dict(rows, headers)
 

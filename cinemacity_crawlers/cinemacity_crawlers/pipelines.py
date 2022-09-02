@@ -23,11 +23,11 @@ class CinemacityCrawlersPipeline:
         self.fix_cinemas()
         for cinema_id in cinemas_to_dump:
             self.cursor.execute(
-                "INSERT OR REPLACE INTO yesterday(cinema_id, json) VALUES (:cinema_id, "
-                "(SELECT json FROM today WHERE cinema_id=:cinema_id))", {'cinema_id': cinema_id})
+                """UPDATE cinemas SET yesterday_json=(SELECT today_json FROM cinemas WHERE cinema_id=:cinema_id) 
+                WHERE cinema_id=:cinema_id;""", {'cinema_id': cinema_id})
             self.cursor.execute(
-                "INSERT OR REPLACE INTO today(cinema_id, json) VALUES (:cinema_id, :json)",
-                {'cinema_id': cinema_id, 'json': json.dumps(cinemas_to_dump[cinema_id])})
+                """UPDATE cinemas SET today_json=:today_json WHERE cinema_id=:cinema_id""",
+                {'cinema_id': cinema_id, 'today_json': json.dumps(cinemas_to_dump[cinema_id])})
         self.conn.commit()
         self.conn.close()
 
@@ -36,7 +36,9 @@ class CinemacityCrawlersPipeline:
                                 cinema_id TEXT PRIMARY KEY,
                                 cinema_name TEXT NOT NULL,
                                 cinema_image_url TEXT NOT NULL,
-                                broadcast_movies TEXT
+                                broadcast_movies TEXT,
+                                today_json TEXT,
+                                yesterday_json TEXT
                                 )""")
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS movies(
                                 movie_id TEXT PRIMARY KEY,
@@ -44,16 +46,6 @@ class CinemacityCrawlersPipeline:
                                 poster_link TEXT NOT NULL,
                                 movie_link TEXT NOT NULL,
                                 trailer_link TEXT
-                                )""")
-        self.cursor.execute("""CREATE TABLE IF NOT EXISTS today (
-                                cinema_id TEXT PRIMARY KEY,
-                                json TEXT,
-                                FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id)
-                                )""")
-        self.cursor.execute("""CREATE TABLE IF NOT EXISTS yesterday (
-                                cinema_id TEXT PRIMARY KEY,
-                                json TEXT,
-                                FOREIGN KEY(cinema_id) REFERENCES cinemas(cinema_id)
                                 )""")
 
     def fetch_cinemas(self):

@@ -44,20 +44,12 @@ viber = Api(BotConfiguration(
 cinemas = db.fetch_cinemas()
 
 for cinema_id in cinemas:
-    cinemas[cinema_id]['today_json'] = json.loads(db.fetch_today_json(cinema_id))
-    cinemas[cinema_id]['yesterday_json'] = json.loads(db.fetch_yesterday_json(cinema_id))
+    test = cinemas[cinema_id]['today_json']
+    cinemas[cinema_id]['today_json'] = json.loads(cinemas[cinema_id]['today_json'])
+    cinemas[cinema_id]['yesterday_json'] = json.loads(cinemas[cinema_id]['yesterday_json'])
     cinemas[cinema_id]['days'] = list(cinemas[cinema_id]['today_json'].keys())
 movie_names = db.fetch_movies_names()
 cinema_names = db.fetch_cinema_names()
-print()
-
-
-# def convert_arr_to_dict(arr):
-#     dictionary = {}
-#     for e in arr:
-#         for k, v in e.items():
-#             dictionary[k] = v
-#     return dictionary
 
 
 def remove_empty_elements(d):
@@ -127,7 +119,7 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text="You have chosen *%s* as your favourite cinema!\n\n%s" % (message, rsp.info))
             ])
-        elif message.lower() == 'cinema' or sender_sel_cinema is None:
+        elif message.lower() == 'cinema' or message.lower() == 'cinemas' or sender_sel_cinema is None:
             viber.send_messages(sender_id, [
                 TextMessage(text="Please pick a cinema first.", keyboard=rsp.cinemas_keyboard(cinemas))
             ])
@@ -164,9 +156,11 @@ def incoming():
             movie_id = db.fetch_movie_by_name(message, MoviesTable.movie_id.value)
             screenings = cinemas[sender_sel_cinema]['today_json'][sender_sel_date][movie_id]['movie_screenings']
             cinema_name = cinemas[sender_sel_cinema]['cinema_name']
-            url = db.fetch_movie_by_id(movie_id, MoviesTable.movie_link.value)
+            base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.movie_link.value)
+            resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema)
+            # TODO: This should work, but '?' query string separator breaks the URI - wait for viber support's response
             viber.send_messages(sender_id, [
-                URLMessage(media=url)
+                URLMessage(media=resp_url)
             ])
             r = 'Screenings of movie *%s* on *%s* in cinema *%s*\n\n' % (message, sender_sel_date, cinema_name)
             r = r + '\n'.join(screenings)
