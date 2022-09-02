@@ -1,6 +1,11 @@
+import paths
+from queries import *
+
+db = DatabaseCommunication(paths.DB_PATH)
+movies = db.fetch_movies()
+
+
 class Responses:
-    def __init__(self, days_dictionary):
-        self.days_dictionary = days_dictionary
 
     info = 'Please type one of the following commands:\n\n' \
            '*Today* - will display today\'s movies on screen\n' \
@@ -9,8 +14,8 @@ class Responses:
 
     def movies(self, movies_resp_day):
         movies_resp = '*Movies currently in cinema for date %s*\n' % movies_resp_day
-        for movie_resp in self.days_dictionary[movies_resp_day]:
-            movies_resp = movies_resp + '\n' + movie_resp
+        # for movie_id, movie in movies.items():
+        #     movies_resp = movies_resp + '\n' + movie['movie_name']
         return movies_resp
 
     def days_keyboard(self, days_arr):
@@ -44,7 +49,7 @@ class Responses:
 
         return keyboard
 
-    def movie_keyboard(self, movie_kb_day):
+    def movie_keyboard(self, movies_on_sel_day):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
@@ -58,29 +63,50 @@ class Responses:
             "BgMedia": "<add_poster_link>",
             "ActionType": "",
             "ActionBody": "<add_action_body>",
+            "TextOpacity": 90,
             "Text": "<add_btn_txt>"
         }
 
-        for m_key, m_value in self.days_dictionary[movie_kb_day].items():
-            # m_poster = m_value['poster_link']
+        for m_key, m_value in movies_on_sel_day.items():
+            m_poster = db.fetch_movie_by_id(m_key, MoviesTable.poster_link.value)
 
             day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
             day_btn['ActionBody'] = m_value['movie_name']
-            # day_btn['Text'] = "<font size=\"12\">%s</font>" % m_name
             day_btn['Text'] = m_value['movie_name']
-            # day_btn['BgMedia'] = m_poster
+            day_btn['BgMedia'] = m_poster
             keyboard['Buttons'].append(day_btn)
 
         return keyboard
 
-    def movie(self, movie_resp_day, movie_resp_movie):
-        m_resp = 'Screenings of movie *%s* on *%s*\n\n' % (movie_resp_movie, movie_resp_day)
-        screenings = self.days_dictionary[movie_resp_day][movie_resp_movie]['movie_screenings']
-        m_resp = m_resp + '\n'.join(screenings)
-        return m_resp
-
     def dates(self):
         dates_resp = 'Which day are you interested in?\n'
-        for day_resp in self.days_dictionary:
-            dates_resp = dates_resp + '\n' + day_resp
+        # for day_resp in self.days_dictionary:
+        #     dates_resp = dates_resp + '\n' + day_resp
         return dates_resp
+
+    def cinemas_keyboard(self, cinemas):
+        keyboard = {
+            "Type": "keyboard",
+            "Buttons": []
+        }
+
+        m_btn_tpl = {
+            "Columns": 2,
+            "Rows": 2,
+            "BgColor": "#e6f5ff",
+            "BgLoop": True,
+            "BgMedia": "<add_poster_link>",
+            "ActionType": "",
+            "ActionBody": "<add_action_body>",
+            "Text": "<add_btn_txt>",
+            "TextSize": "large",
+        }
+        print()
+        for cinema_id in cinemas:
+            day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
+            day_btn['ActionBody'] = cinemas[cinema_id]['cinema_name']
+            day_btn['Text'] = cinemas[cinema_id]['cinema_name']
+            day_btn['BgMedia'] = cinemas[cinema_id]['cinema_image_url']
+            keyboard['Buttons'].append(day_btn)
+
+        return keyboard

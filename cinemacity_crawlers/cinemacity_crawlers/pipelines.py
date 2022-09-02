@@ -35,7 +35,8 @@ class CinemacityCrawlersPipeline:
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS cinemas (
                                 cinema_id TEXT PRIMARY KEY,
                                 cinema_name TEXT NOT NULL,
-                                cinema_image_url TEXT NOT NULL
+                                cinema_image_url TEXT NOT NULL,
+                                broadcast_movies TEXT
                                 )""")
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS movies(
                                 movie_id TEXT PRIMARY KEY,
