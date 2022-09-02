@@ -25,7 +25,6 @@ today = datetime_now.strftime('%d %b')
 tomorrow = tomorrow_datetime.strftime('%d %b')
 logger.info('Today is: ' + today)
 
-
 rsp = Responses()
 db = DatabaseCommunication(paths.DB_PATH)
 db.set_today_4_all_users(today)
@@ -110,10 +109,25 @@ def incoming():
         logger.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
         db.add_user(sender_id, sender_name, today)
 
-        sender_sel_date = db.fetch_user_date(sender_id)
-        sender_sel_cinema = db.fetch_user_cinema(sender_id)
+        sender_sel_cinema = db.fetch_user(sender_id)[3]  # '3' is the 'selected_date' field index in the user tuple
+        sender_sel_date = db.fetch_user(sender_id)[4]  # '4' is the 'selected cinema' field index in the user tuple
 
-        if message in cinema_names:
+        if message.lower() == 'sub' or message.lower() == 'unsub':
+            is_subscribed = db.fetch_user(sender_id)[2]  # '2' is the 'subscribed' field index in the user tuple
+            sub_msg = 'An issue occurred...'
+            if not is_subscribed and message.lower() == 'sub':
+                db.update_user_subscription_status(sender_id, 1)
+                sub_msg = 'You are now *SUBSCRIBED* to our cinema updates.\nType "*unsub*" if you wish to unsubscribe.'
+            elif not is_subscribed and message.lower() == 'unsub':
+                sub_msg = 'You cannot unsubscribe because you are currently not subscribed.\nType "*sub*" to subscribe to our updates!'
+            if is_subscribed and message.lower() == 'sub':
+                sub_msg = 'You are already subscribed.\nType "*unsub*" if you wish to unsubscribe'
+            if is_subscribed and message.lower() == 'unsub':
+                db.update_user_subscription_status(sender_id, 0)
+                sub_msg = 'You are now *UNSUBSCRIBED* from our cinema updates.\nType "*sub*" if you wish to subscribe again'
+            viber.send_messages(sender_id, [
+                TextMessage(text=sub_msg)])
+        elif message in cinema_names:
             user_cinema_id = db.fetch_cinema_by_name(message, 0)
             db.set_user_cinema(sender_id, user_cinema_id)
             viber.send_messages(sender_id, [
@@ -121,7 +135,8 @@ def incoming():
             ])
         elif message.lower() == 'cinema' or message.lower() == 'cinemas' or sender_sel_cinema is None:
             viber.send_messages(sender_id, [
-                TextMessage(text="Please pick a cinema first.", keyboard=rsp.cinemas_keyboard(cinemas))
+                TextMessage(text="Please pick a your favourite cinema before we begin!",
+                            keyboard=rsp.cinemas_keyboard(cinemas))
             ])
         elif message.lower() == 'dates':
             viber.send_messages(sender_id, [

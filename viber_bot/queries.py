@@ -15,7 +15,7 @@ def convert_result_to_dict(rows, headers):
         items[row_id] = info
     return items
 
-
+# TODO: add enums for each table
 class MoviesTable(enum.Enum):
     movie_id = 0
     movie_name = 1
@@ -62,16 +62,6 @@ class DatabaseCommunication:
                                 WHERE user_id=:user_id""",
                                 {'user_id': user_id, 'cinema_id': cinema_id})
 
-    def fetch_user_date(self, user_id):
-        with self.conn:
-            self.cursor.execute("SELECT selected_date FROM users WHERE user_id=:user_id", {'user_id': user_id})
-        return self.cursor.fetchone()[0]
-
-    def fetch_user_cinema(self, user_id):
-        with self.conn:
-            self.cursor.execute("SELECT selected_cinema_id FROM users WHERE user_id=:user_id", {'user_id': user_id})
-        return self.cursor.fetchone()[0]
-
     def fetch_user(self, user_id):
         with self.conn:
             self.cursor.execute("SELECT * FROM users WHERE user_id=:user_id", {'user_id': user_id})
@@ -80,6 +70,11 @@ class DatabaseCommunication:
     def set_today_4_all_users(self, selected_date):
         with self.conn:
             self.cursor.execute("UPDATE users SET selected_date=:selected_date", {'selected_date': selected_date})
+
+    def update_user_subscription_status(self, user_id, subscribed):
+        with self.conn:
+            self.cursor.execute("""UPDATE users SET subscribed=:subscribed WHERE user_id=:user_id""",
+                                {'subscribed': subscribed, 'user_id': user_id})
 
     def fetch_all_subscribed(self):
         with self.conn:

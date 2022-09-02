@@ -10,7 +10,9 @@ class Responses:
     info = 'Please type one of the following commands:\n\n' \
            '*Today* - will display today\'s movies on screen\n' \
            '*Tomorrow* - will display tomorrow\'s movies on screen\n' \
-           '*Dates* - will provide you with buttons of dates from which you can choose.'
+           '*Dates* - to check movies on screen for the selected date\n' \
+           '*Cinemas* - to pick your favourite cinema\n' \
+           '*Sub/Unsub* - to subscribed/unsubscribe for new movies in cinema updates'
 
     def movies(self, movies_resp_day):
         movies_resp = '*Movies currently in cinema for date %s*\n' % movies_resp_day
