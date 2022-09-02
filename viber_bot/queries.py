@@ -90,6 +90,16 @@ class DatabaseCommunication:
                 # access the other rows
         return return_list
 
+    def fetch_users_to_broadcast(self, cinema_id):
+        with self.conn:
+            result = self.cursor.execute(
+                """SELECT * FROM users WHERE selected_cinema_id=:cinema_id and subscribed=1;""",
+                {'cinema_id': cinema_id}).fetchall()
+            return_list = []
+            for user in result:
+                return_list.append(user[0])
+        return return_list
+
     def update_today_jsons(self, cinema_id, today_json):
         with self.conn:
             self.cursor.execute("""UPDATE cinemas SET today_json=:today_json WHERE cinema_id=:cinema_id""",
@@ -152,7 +162,6 @@ class DatabaseCommunication:
             result = self.cursor.execute("""SELECT * FROM cinemas""").fetchall()
             headers = self.cursor.description
         return convert_result_to_dict(result, headers)
-
 
 # self.cursor.row_factory = lambda cursor, row: row[0]
 # https://stackoverflow.com/a/23115247/15266844
