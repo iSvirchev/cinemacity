@@ -109,11 +109,11 @@ def incoming():
         logger.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
         db.add_user(sender_id, sender_name, today)
 
-        sender_sel_cinema = db.fetch_user(sender_id)[3]  # '3' is the 'selected_date' field index in the user tuple
-        sender_sel_date = db.fetch_user(sender_id)[4]  # '4' is the 'selected cinema' field index in the user tuple
+        sender_sel_cinema = db.fetch_user(sender_id)[UsersTable.selected_cinema_id.value]
+        sender_sel_date = db.fetch_user(sender_id)[UsersTable.selected_date.value]
 
         if message.lower() == 'sub' or message.lower() == 'unsub':
-            is_subscribed = db.fetch_user(sender_id)[2]  # '2' is the 'subscribed' field index in the user tuple
+            is_subscribed = db.fetch_user(sender_id)[UsersTable.subscribed.value]
             sub_msg = 'An issue occurred...'
             if not is_subscribed and message.lower() == 'sub':
                 db.update_user_subscription_status(sender_id, 1)
@@ -135,7 +135,7 @@ def incoming():
             ])
         elif message.lower() == 'cinema' or message.lower() == 'cinemas' or sender_sel_cinema is None:
             viber.send_messages(sender_id, [
-                TextMessage(text="Please pick a your favourite cinema before we begin!",
+                TextMessage(text="Please pick your favourite cinema so we can begin",
                             keyboard=rsp.cinemas_keyboard(cinemas))
             ])
         elif message.lower() == 'dates':
@@ -154,7 +154,7 @@ def incoming():
             db.set_user_date(sender_id, sel_day)
             logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
-                reply = rsp.movies(sel_day)
+                reply = rsp.movies(sel_day, cinemas[sender_sel_cinema]['cinema_name'])
                 kb = rsp.movie_keyboard(cinemas[sender_sel_cinema]['today_json'][sel_day])
             except KeyError as ke:
                 reply = "No movie screenings for the selected day: *%s*" % sel_day
@@ -177,7 +177,7 @@ def incoming():
             viber.send_messages(sender_id, [
                 URLMessage(media=resp_url)
             ])
-            r = 'Screenings of movie *%s* on *%s* in cinema *%s*\n\n' % (message, sender_sel_date, cinema_name)
+            r = 'Screenings of movie *%s* on *%s* in *%s*\n\n' % (message, sender_sel_date, cinema_name)
             r = r + '\n'.join(screenings)
             viber.send_messages(sender_id, [
                 TextMessage(text=r)

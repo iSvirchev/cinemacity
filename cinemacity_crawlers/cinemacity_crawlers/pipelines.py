@@ -26,7 +26,7 @@ class CinemacityCrawlersPipeline:
                 """UPDATE cinemas SET yesterday_json=(SELECT today_json FROM cinemas WHERE cinema_id=:cinema_id) 
                 WHERE cinema_id=:cinema_id;""", {'cinema_id': cinema_id})
             self.cursor.execute(
-                """UPDATE cinemas SET today_json=:today_json WHERE cinema_id=:cinema_id""",
+                """UPDATE cinemas SET today_json=:today_json, broadcast_movies=NULL WHERE cinema_id=:cinema_id""",
                 {'cinema_id': cinema_id, 'today_json': json.dumps(cinemas_to_dump[cinema_id])})
         self.conn.commit()
         self.conn.close()

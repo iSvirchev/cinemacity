@@ -6,7 +6,6 @@ movies = db.fetch_movies()
 
 
 class Responses:
-
     info = 'Please type one of the following commands:\n\n' \
            '*Today* - will display today\'s movies on screen\n' \
            '*Tomorrow* - will display tomorrow\'s movies on screen\n' \
@@ -14,8 +13,8 @@ class Responses:
            '*Cinemas* - to pick your favourite cinema\n' \
            '*Sub/Unsub* - to subscribed/unsubscribe for new movies in cinema updates'
 
-    def movies(self, movies_resp_day):
-        movies_resp = '*Movies currently in cinema for date %s*\n' % movies_resp_day
+    def movies(self, movies_resp_day, cinema_name):
+        movies_resp = 'Movies currently in *%s* for date *%s*.' % (cinema_name, movies_resp_day)
         # for movie_id, movie in movies.items():
         #     movies_resp = movies_resp + '\n' + movie['movie_name']
         return movies_resp

@@ -15,13 +15,30 @@ def convert_result_to_dict(rows, headers):
         items[row_id] = info
     return items
 
-# TODO: add enums for each table
+
 class MoviesTable(enum.Enum):
     movie_id = 0
     movie_name = 1
     poster_link = 2
     movie_link = 3
     trailer_link = 4
+
+
+class CinemasTable(enum.Enum):
+    cinema_id = 0
+    cinema_name = 1
+    cinema_image_url = 2
+    broadcast_movies = 3
+    today_json = 4
+    yesterday_json = 5
+
+
+class UsersTable(enum.Enum):
+    user_id = 0
+    user_name = 1
+    subscribed = 2
+    selected_cinema_id = 3
+    selected_date = 4
 
 
 class DatabaseCommunication:
@@ -117,14 +134,12 @@ class DatabaseCommunication:
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM movies WHERE movie_id=:movie_id""",
                                          {'movie_id': movie_id}).fetchone()[field_to_return]
-        print()
         return result  # TODO: check if we can use enum for table headers
 
     def fetch_movie_by_name(self, movie_name, field_to_return):
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM movies WHERE movie_name=:movie_name""",
                                          {'movie_name': movie_name}).fetchone()[field_to_return]
-        print()
         return result
 
     def fetch_cinemas(self):
@@ -144,7 +159,6 @@ class DatabaseCommunication:
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM cinemas WHERE cinema_name=:cinema_name""",
                                          {'cinema_name': cinema_name}).fetchone()[field_to_return]
-        print()
         return result
 
     def update_broadcast_movies(self, cinema_id, broadcast_movies):
@@ -170,5 +184,4 @@ class DatabaseCommunication:
 #         headers = self.cursor.description
 #         t = row.keys()
 #         name = row['movie_name']
-#         print()
 #     return convert_result_to_dict(rows, headers)
