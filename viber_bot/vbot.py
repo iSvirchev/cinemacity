@@ -45,21 +45,9 @@ viber = Api(BotConfiguration(
 cinemas = db.fetch_cinemas()
 logger.info("cinemas has been initialized.")
 
-for cinema_id, cinema in cinemas.items():
-    logger.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
-    cinema['today_json'] = json.loads(cinema['today_json'])
-    # on first run db's yesterday_json is empty - we assign today_json
-    cinema['yesterday_json'] = json.loads(cinema['yesterday_json']) \
-        if cinema['yesterday_json'] is not None else cinema['today_json']
-    cinema['days'] = list(cinema['today_json'].keys())
-movie_names = db.fetch_movies_names()
-logger.info("movie_names has been initialized.")
-cinema_names = db.fetch_cinema_names()
-logger.info("cinema_names has been initialized.")
 
+def remove_empty_elements(d):  # recursively remove empty lists, empty dicts, or None elements from a dictionary
 
-def remove_empty_elements(d):
-    #   recursively remove empty lists, empty dicts, or None elements from a dictionary
     def empty(x):
         return x is None or x == {} or x == []
 
@@ -70,17 +58,24 @@ def remove_empty_elements(d):
     else:
         return {k: v for k, v in ((k, remove_empty_elements(v)) for k, v in d.items()) if not empty(v)}
 
+logger.info("--------------------------------------------------------------")
+for cinema_id, cinema in cinemas.items():
+    logger.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
+    today_json = json.loads(cinema['today_json'])
+    # on first run db's yesterday_json is empty - we assign today_json
+    yesterday_json = json.loads(cinema['yesterday_json']) if cinema['yesterday_json'] is not None else today_json
+    cinema['today_json'] = today_json
+    cinema['yesterday_json'] = yesterday_json
+    cinema['days'] = list(cinema['today_json'].keys())
 
-for cinema_id in cinemas:
-    # We extract all the movies from yesterday's JSON file
-    yesterday_json = cinemas[cinema_id]['yesterday_json']
-    yesterday_movies_set = set()
+    yesterday_movies_set = set()  # we extract all the movies from yesterday's JSON file
+    today_movies_set = set()  # we extract ALL the movies from the whole week into this set
+
     for day in yesterday_json:
         for movie_id, movie in yesterday_json[day].items():
             yesterday_movies_set.add(movie['movie_name'])
+    logger.info("All movies from yesterday_json have been extracted.")
 
-    today_json = cinemas[cinema_id]['today_json']
-    today_movies_set = set()  # we extract ALL the movies from the whole week into this set
     for day in today_json:
         for movie_id, movie in today_json[day].items():
             today_movies_set.add(movie['movie_name'])
@@ -89,14 +84,24 @@ for cinema_id in cinemas:
                 movie.pop('booking_link')
                 # remove the movie_name to make the delete recursion work
                 movie.pop('movie_name')
+    logger.info("All movies from today_json have been extracted - today_movies_set len is: %s" % len(today_json))
     today_json = remove_empty_elements(today_json)  # removes movies and days with no showings - (pre-sales)
+    logger.info("today_movies_set len after remove_empty_elements is: %s" % len(today_json))
     db.update_today_jsons(cinema_id, json.dumps(today_json))
 
     # Return a set that contains the items that only exist in set 1, and not in set 2:
-    broadcast_movies_set = today_movies_set.difference(yesterday_movies_set)
+    diff_set = today_movies_set.difference(yesterday_movies_set)
 
-    if len(broadcast_movies_set) != 0:
-        db.update_broadcast_movies(cinema_id, ';'.join(broadcast_movies_set))
+    if len(diff_set) != 0:  # if the difference set's size is bigger tha 0 - we set cinemas.broadcast_movies to diff_set
+        logger.info("diff_set is not empty for cinema %s" % cinema_id)
+        logger.info("diff_set is: %s" % diff_set)
+        db.update_broadcast_movies(cinema_id, ';'.join(diff_set))
+    logger.info("--------------------------------------------------------------")
+
+movie_names = db.fetch_movies_names()
+logger.info("movie_names has been initialized.")
+cinema_names = db.fetch_cinema_names()
+logger.info("cinema_names has been initialized.")
 
 
 @app.route('/', methods=['POST'])
