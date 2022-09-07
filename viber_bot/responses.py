@@ -14,9 +14,9 @@ class Responses:
            '*Sub/Unsub* - to subscribed/unsubscribe for new movies in cinema updates'
 
     def movies(self, movies_resp_day, cinema_name):
-        movies_resp = 'Movies currently in *%s* for date *%s*.' % (cinema_name, movies_resp_day)
-        # for movie_id, movie in movies.items():
-        #     movies_resp = movies_resp + '\n' + movie['movie_name']
+        movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema_name, movies_resp_day)
+        for movie_id, movie in movies.items():
+            movies_resp = movies_resp + '\n' + movie['movie_name']
         return movies_resp
 
     def days_keyboard(self, days_arr):
@@ -39,7 +39,7 @@ class Responses:
             "BgLoop": True,
             "ActionType": "reply",
             "ActionBody": "<add_action_body>",
-            "Text": "<add_btn_txt>"
+            "Text": "<add_btn_txt>",
         }
         for day in days_arr:
             day_btn = button_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
@@ -64,7 +64,7 @@ class Responses:
             "BgMedia": "<add_poster_link>",
             "ActionType": "",
             "ActionBody": "<add_action_body>",
-            "TextOpacity": 90,
+            "TextOpacity": 0,
             "Text": "<add_btn_txt>"
         }
 
@@ -91,7 +91,7 @@ class Responses:
             "Buttons": []
         }
 
-        m_btn_tpl = {
+        c_btn_tpl = {
             "Columns": 2,
             "Rows": 2,
             "BgColor": "#e6f5ff",
@@ -100,13 +100,13 @@ class Responses:
             "ActionType": "",
             "ActionBody": "<add_action_body>",
             "Text": "<add_btn_txt>",
-            "TextSize": "large",
+            "TextSize": "regular",
+            "TextVAlign": "middle",
         }
-        print()
         for cinema_id in cinemas:
-            day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
+            day_btn = c_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
             day_btn['ActionBody'] = cinemas[cinema_id]['cinema_name']
-            day_btn['Text'] = cinemas[cinema_id]['cinema_name']
+            day_btn['Text'] = "<font color=\"#ffffff\"><b>%s</b></font>" % cinemas[cinema_id]['cinema_name']
             day_btn['BgMedia'] = cinemas[cinema_id]['cinema_image_url']
             keyboard['Buttons'].append(day_btn)
 

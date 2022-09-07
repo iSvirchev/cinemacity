@@ -24,14 +24,16 @@ tomorrow_datetime = datetime_now + datetime.timedelta(days=1)
 today = datetime_now.strftime('%d %b')
 tomorrow = tomorrow_datetime.strftime('%d %b')
 logger.info('Today is: ' + today)
+logger.info('Tomorrow is: ' + tomorrow)
 
 rsp = Responses()
 db = DatabaseCommunication(paths.DB_PATH)
 db.set_today_4_all_users(today)
-logger.info('All users default date has been set to today!')
+logger.info('All users\' default dates have been set to today!')
 
 with open(paths.CONFIG_PATH, 'r') as f:
     bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
+logger.info("bot_token extracted")
 
 app = Flask(__name__)
 viber = Api(BotConfiguration(
@@ -41,14 +43,19 @@ viber = Api(BotConfiguration(
 ))
 
 cinemas = db.fetch_cinemas()
+logger.info("cinemas has been initialized.")
 
-for cinema_id in cinemas:
-    test = cinemas[cinema_id]['today_json']
-    cinemas[cinema_id]['today_json'] = json.loads(cinemas[cinema_id]['today_json'])
-    cinemas[cinema_id]['yesterday_json'] = json.loads(cinemas[cinema_id]['yesterday_json'])
-    cinemas[cinema_id]['days'] = list(cinemas[cinema_id]['today_json'].keys())
+for cinema_id, cinema in cinemas.items():
+    logger.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
+    cinema['today_json'] = json.loads(cinema['today_json'])
+    # on first run db's yesterday_json is empty - we assign today_json
+    cinema['yesterday_json'] = json.loads(cinema['yesterday_json']) \
+        if cinema['yesterday_json'] is not None else cinema['today_json']
+    cinema['days'] = list(cinema['today_json'].keys())
 movie_names = db.fetch_movies_names()
+logger.info("movie_names has been initialized.")
 cinema_names = db.fetch_cinema_names()
+logger.info("cinema_names has been initialized.")
 
 
 def remove_empty_elements(d):
