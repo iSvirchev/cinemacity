@@ -58,6 +58,7 @@ def remove_empty_elements(d):  # recursively remove empty lists, empty dicts, or
     else:
         return {k: v for k, v in ((k, remove_empty_elements(v)) for k, v in d.items()) if not empty(v)}
 
+
 logger.info("--------------------------------------------------------------")
 for cinema_id, cinema in cinemas.items():
     logger.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
@@ -166,9 +167,10 @@ def incoming():
             db.set_user_date(sender_id, sel_day)
             logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
-                reply = rsp.movies(sel_day, cinemas[sender_sel_cinema]['cinema_name'])
+                reply = rsp.movies(cinemas[sender_sel_cinema], sel_day)
                 kb = rsp.movie_keyboard(cinemas[sender_sel_cinema]['today_json'][sel_day])
             except KeyError as ke:
+                logger.error("Error while displaying movies.")
                 reply = "No movie screenings for the selected day: *%s*" % sel_day
                 kb = None
                 logger.info(reply)

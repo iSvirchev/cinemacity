@@ -2,7 +2,7 @@ import paths
 from queries import *
 
 db = DatabaseCommunication(paths.DB_PATH)
-movies = db.fetch_movies()
+# movies = db.fetch_movies()
 
 
 class Responses:
@@ -13,8 +13,9 @@ class Responses:
            '*Cinemas* - to pick your favourite cinema\n' \
            '*Sub/Unsub* - to subscribed/unsubscribe for new movies in cinema updates'
 
-    def movies(self, movies_resp_day, cinema_name):
-        movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema_name, movies_resp_day)
+    def movies(self, cinema, movies_resp_day):
+        movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema['cinema_name'], movies_resp_day)
+        movies = cinema['today_json'][movies_resp_day]
         for movie_id, movie in movies.items():
             movies_resp = movies_resp + '\n' + movie['movie_name']
         return movies_resp
