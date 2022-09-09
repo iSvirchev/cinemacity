@@ -161,6 +161,12 @@ class DatabaseCommunication:
                                          {'cinema_name': cinema_name}).fetchone()[field_to_return]
         return result
 
+    def fetch_cinema_by_id(self, cinema_id, field_to_return):
+        with self.conn:
+            result = self.cursor.execute("""SELECT * FROM cinemas WHERE cinema_id=:cinema_id""",
+                                         {'cinema_id': cinema_id}).fetchone()[field_to_return]
+        return result
+
     def update_broadcast_movies(self, cinema_id, broadcast_movies):
         with self.conn:
             self.cursor.execute("""UPDATE cinemas SET broadcast_movies=:broadcast_movies WHERE cinema_id=:cinema_id""",

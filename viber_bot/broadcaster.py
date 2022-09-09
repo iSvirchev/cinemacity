@@ -18,8 +18,8 @@ with open(paths.CONFIG_PATH, 'r') as f:
 logger.info("bot_token extracted")
 
 
-def broadcast_new_movies(diff_set, broadcast_list):
-    broadcast_msg = "(video) ```New movies in cinema this week!``` (video)\n\n"
+def broadcast_new_movies(diff_set, broadcast_list, cin_name):
+    broadcast_msg = "(video) ```New movies in *%s* this week!``` (video)\n\n" % cin_name
 
     for new_movie in diff_set:
         broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
@@ -50,4 +50,5 @@ for cinema_id, cinema in broadcast_movies_result.items():
         users_to_broadcast = db.fetch_users_to_broadcast(cinema_id)
         # TODO: Sofia has 2 cinemas - if user is subscribed to either one of them - they should be notified for both
         if users_to_broadcast:  # Only broadcast to the subscribed users (if any)
-            broadcast_new_movies(broadcast_movies, users_to_broadcast)
+            cinema_name = db.fetch_movie_by_id(cinema_id, CinemasTable.cinema_name)
+            broadcast_new_movies(broadcast_movies, users_to_broadcast, cinema_name)
