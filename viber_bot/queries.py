@@ -134,7 +134,7 @@ class DatabaseCommunication:
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM movies WHERE movie_id=:movie_id""",
                                          {'movie_id': movie_id}).fetchone()[field_to_return]
-        return result  # TODO: check if we can use enum for table headers
+        return result
 
     def fetch_movie_by_name(self, movie_name, field_to_return):
         with self.conn:
@@ -166,6 +166,11 @@ class DatabaseCommunication:
             result = self.cursor.execute("""SELECT * FROM cinemas WHERE cinema_id=:cinema_id""",
                                          {'cinema_id': cinema_id}).fetchone()[field_to_return]
         return result
+
+    def reset_broadcast_movies(self, cinema_id):
+        with self.conn:
+            self.cursor.execute("""UPDATE cinemas SET broadcast_movies=NULL WHERE cinema_id=:cinema_id""",
+                                {'cinema_id': cinema_id})
 
     def update_broadcast_movies(self, cinema_id, broadcast_movies):
         with self.conn:
