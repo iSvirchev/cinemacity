@@ -94,8 +94,7 @@ for cinema_id, cinema in cinemas.items():
     diff_set = today_movies_set.difference(yesterday_movies_set)
 
     if len(diff_set) != 0:  # if the difference set's size is bigger tha 0 - we set cinemas.broadcast_movies to diff_set
-        logger.info("diff_set is not empty for cinema %s" % cinema_id)
-        logger.info("diff_set is: %s" % diff_set)
+        logger.info("diff_set has %s movies for cinema %s" % (len(diff_set), cinema_id))
         db.update_broadcast_movies(cinema_id, ';'.join(diff_set))
     logger.info("--------------------------------------------------------------")
 
