@@ -14,11 +14,13 @@ from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFa
     ViberSubscribedRequest
 
 logging.basicConfig(filename=paths.LOG_PATH,
-                    filemode='w',
+                    filemode='a',
                     level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
 logger = logging.getLogger()
-
+logger.info("=================================================")
+logger.info("Starting Viber Bot!")
+logger.info("=================================================")
 datetime_now = datetime.datetime.now()
 tomorrow_datetime = datetime_now + datetime.timedelta(days=1)
 today = datetime_now.strftime('%d %b')

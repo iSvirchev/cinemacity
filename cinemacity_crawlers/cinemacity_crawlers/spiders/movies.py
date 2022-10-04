@@ -66,7 +66,7 @@ class MoviesSpider(scrapy.Spider):
         all_showings = body['events']
         movies = {}
         date = None
-
+        movies_names_in_db = list(map(lambda n: n[0], self.cursor.execute("SELECT movie_name FROM movies").fetchall()))
         for movie in all_movies:
             movie_id = movie['id']
             poster_link = movie['posterLink'].replace('md', 'sm')  # posters can end in -sm -md -lg depending on size
@@ -94,14 +94,18 @@ class MoviesSpider(scrapy.Spider):
                     # 'trailer_link': trailer_link,
                 }
 
-            self.cursor.execute("INSERT OR IGNORE INTO movies(movie_id, movie_name, poster_link, movie_link, trailer_link) "
-                                "VALUES (:movie_id, :movie_name, :poster_link, :movie_link, :trailer_link);", {
-                                    'movie_id': movie_id,
-                                    'movie_name': movie_name,
-                                    'poster_link': poster_link,
-                                    'movie_link': movie_link,
-                                    'trailer_link': trailer_link
-                                })
+            # Sometimes CinemaCity would release a movie with one movie_name and later rename it
+            # Which breaks my movie_name bot responses  - so I add this check to bypass that without many DB operations
+            if movie_name not in movies_names_in_db:
+                self.cursor.execute(
+                    "INSERT OR REPLACE INTO movies(movie_id, movie_name, poster_link, movie_link, trailer_link) "
+                    "VALUES (:movie_id, :movie_name, :poster_link, :movie_link, :trailer_link);", {
+                        'movie_id': movie_id,
+                        'movie_name': movie_name,
+                        'poster_link': poster_link,
+                        'movie_link': movie_link,
+                        'trailer_link': trailer_link
+                    })
             self.conn.commit()
 
             movies[movie_id] = movie
