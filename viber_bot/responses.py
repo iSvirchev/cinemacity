@@ -70,7 +70,7 @@ class Responses:
         }
 
         for m_key, m_value in movies_on_sel_day.items():
-            m_poster = db.fetch_movie_by_id(m_key, MoviesTable.poster_link.value)
+            m_poster = db.fetch_movie_by_id(m_key, MoviesTable.POSTER_LINK)
 
             day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
             day_btn['ActionBody'] = m_value['movie_name']

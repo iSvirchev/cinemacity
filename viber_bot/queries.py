@@ -16,29 +16,29 @@ def convert_result_to_dict(rows, headers):
     return items
 
 
-class MoviesTable(enum.Enum):
-    movie_id = 0
-    movie_name = 1
-    poster_link = 2
-    movie_link = 3
-    trailer_link = 4
+class MoviesTable:
+    MOVIE_ID = 0
+    MOVIE_NAME = 1
+    POSTER_LINK = 2
+    MOVIE_LINK = 3
+    TRAILER_LINK = 4
 
 
-class CinemasTable(enum.Enum):
-    cinema_id = 0
-    cinema_name = 1
-    cinema_image_url = 2
-    broadcast_movies = 3
-    today_json = 4
-    yesterday_json = 5
+class CinemasTable:
+    CINEMA_ID = 0
+    CINEMA_NAME = 1
+    CINEMA_IMAGE_URL = 2
+    BROADCAST_MOVIES = 3
+    TODAY_JSON = 4
+    YESTERDAY_JSON = 5
 
 
-class UsersTable(enum.Enum):
-    user_id = 0
-    user_name = 1
-    subscribed = 2
-    selected_cinema_id = 3
-    selected_date = 4
+class UsersTable:
+    USER_ID = 0
+    USER_NAME = 1
+    SUBSCRIBED = 2
+    SELECTED_CINEMA_ID = 3
+    SELECTED_DATE = 4
 
 
 class DatabaseCommunication:
@@ -102,7 +102,7 @@ class DatabaseCommunication:
                 # access the other rows
         return return_list
 
-    def fetch_users_to_broadcast(self, cinema_id):
+    def fetch_subscribed_users(self, cinema_id):
         with self.conn:
             result = self.cursor.execute(
                 """SELECT * FROM users WHERE selected_cinema_id=:cinema_id and subscribed=1;""",

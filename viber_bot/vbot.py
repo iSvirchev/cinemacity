@@ -13,13 +13,15 @@ from viberbot.api.messages import *
 from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFailedRequest, ViberMessageRequest, \
     ViberSubscribedRequest
 
+logger = logging.getLogger()
 logging.basicConfig(filename=paths.LOG_PATH,
                     filemode='a',
                     level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(name)s -> %(message)s')  # TODO: improve how msg is displayed
-logger = logging.getLogger()
+                    format='[%(asctime)s] {%(filename)s:%(funcName)s():%(lineno)d} %(levelname)s -> %(message)s')
+handler = logging.StreamHandler()
+logger.addHandler(handler)
 logger.info("=================================================")
-logger.info("Starting Viber Bot!")
+logger.info("               Starting Viber Bot...")
 logger.info("=================================================")
 datetime_now = datetime.datetime.now()
 tomorrow_datetime = datetime_now + datetime.timedelta(days=1)
@@ -104,6 +106,9 @@ movie_names = db.fetch_movies_names()
 logger.info("movie_names has been initialized.")
 cinema_names = db.fetch_cinema_names()
 logger.info("cinema_names has been initialized.")
+logger.info("=================================================")
+logger.info("               Viber Bot Started!")
+logger.info("=================================================")
 
 
 @app.route('/', methods=['POST'])
@@ -123,22 +128,24 @@ def incoming():
         logger.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
         db.add_user(sender_id, sender_name, today)
 
-        sender_sel_cinema = db.fetch_user(sender_id)[UsersTable.selected_cinema_id.value]
-        sender_sel_date = db.fetch_user(sender_id)[UsersTable.selected_date.value]
+        sender_sel_cinema = db.fetch_user(sender_id)[UsersTable.SELECTED_CINEMA_ID]
+        sender_sel_date = db.fetch_user(sender_id)[UsersTable.SELECTED_DATE]
 
         if message.lower() == 'sub' or message.lower() == 'unsub':
-            is_subscribed = db.fetch_user(sender_id)[UsersTable.subscribed.value]
+            is_subscribed = db.fetch_user(sender_id)[UsersTable.SUBSCRIBED]
             sub_msg = 'An issue occurred...'
             if not is_subscribed and message.lower() == 'sub':
                 db.update_user_subscription_status(sender_id, 1)
                 sub_msg = 'You are now *SUBSCRIBED* to our cinema updates.\nType "*unsub*" if you wish to unsubscribe.'
             elif not is_subscribed and message.lower() == 'unsub':
-                sub_msg = 'You cannot unsubscribe because you are currently not subscribed.\nType "*sub*" to subscribe to our updates!'
+                sub_msg = 'You cannot unsubscribe because you are currently not subscribed.' \
+                          '\nType "*sub*" to subscribe to our updates!'
             if is_subscribed and message.lower() == 'sub':
                 sub_msg = 'You are already subscribed.\nType "*unsub*" if you wish to unsubscribe'
             if is_subscribed and message.lower() == 'unsub':
                 db.update_user_subscription_status(sender_id, 0)
-                sub_msg = 'You are now *UNSUBSCRIBED* from our cinema updates.\nType "*sub*" if you wish to subscribe again'
+                sub_msg = 'You are now *UNSUBSCRIBED* from our cinema updates.' \
+                          '\nType "*sub*" if you wish to subscribe again'
             viber.send_messages(sender_id, [
                 TextMessage(text=sub_msg)])
         elif message in cinema_names:
@@ -183,10 +190,10 @@ def incoming():
             logger.info(
                 "SENDER_ID: '%s' selected movie '%s' for day '%s for cinema %s'" % (
                     sender_id, message, sender_sel_date, sender_sel_cinema))
-            movie_id = db.fetch_movie_by_name(message, MoviesTable.movie_id.value)
+            movie_id = db.fetch_movie_by_name(message, MoviesTable.MOVIE_ID)
             screenings = cinemas[sender_sel_cinema]['today_json'][sender_sel_date][movie_id]['movie_screenings']
             cinema_name = cinemas[sender_sel_cinema]['cinema_name']
-            base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.movie_link.value)
+            base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.MOVIE_LINK)
             resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema)
             # TODO: This should work, but '?' query string separator breaks the URI - wait for viber support's response
             viber.send_messages(sender_id, [
@@ -202,9 +209,13 @@ def incoming():
                 TextMessage(text=rsp.info)
             ])
     elif isinstance(viber_request, ViberSubscribedRequest):
+        subs_msg = 'SUBSCRIBED' if db.fetch_user(viber_request.user.id)[
+            UsersTable.SUBSCRIBED] else 'NOT SUBSCRIBED'
         viber.send_messages(viber_request.user.id, [
-            TextMessage(text='Hello %s! Thanks you for subscribing!\n'
-                             'Type *INFO* for more information on the available commands.' % viber_request.user.name)
+            TextMessage(text='Hello *%s!* Thanks you for using this bot!\n\n'
+                             'Type *INFO* for available commands.\n'
+                             'You are currently *%s* to our new movies newsletter.' % (
+                                 viber_request.user.name, subs_msg))
         ])
     elif isinstance(viber_request, ViberConversationStartedRequest):
         reply = 'Welcome %s!\n\n%s' % (viber_request.user.name, rsp.info)
