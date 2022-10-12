@@ -195,7 +195,6 @@ def incoming():
             cinema_name = cinemas[sender_sel_cinema]['cinema_name']
             base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.MOVIE_LINK)
             resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema)
-            # TODO: This should work, but '?' query string separator breaks the URI - wait for viber support's response
             viber.send_messages(sender_id, [
                 URLMessage(media=resp_url)
             ])
