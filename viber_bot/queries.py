@@ -1,5 +1,4 @@
 import sqlite3
-import enum
 
 
 # headers is cursor.description:

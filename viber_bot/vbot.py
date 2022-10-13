@@ -1,6 +1,6 @@
 import datetime
 import json
-import logging
+import logger
 
 from queries import *
 from responses import Responses
@@ -13,31 +13,25 @@ from viberbot.api.messages import *
 from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFailedRequest, ViberMessageRequest, \
     ViberSubscribedRequest
 
-logger = logging.getLogger()
-logging.basicConfig(filename=paths.LOG_PATH,
-                    filemode='a',
-                    level=logging.INFO,
-                    format='[%(asctime)s] {%(filename)s:%(funcName)s():%(lineno)d} %(levelname)s -> %(message)s')
-handler = logging.StreamHandler()
-logger.addHandler(handler)
-logger.info("=================================================")
-logger.info("               Starting Viber Bot...")
-logger.info("=================================================")
+log = logger.get_logger()
+log.info("=================================================")
+log.info("               Starting Viber Bot...")
+log.info("=================================================")
 datetime_now = datetime.datetime.now()
 tomorrow_datetime = datetime_now + datetime.timedelta(days=1)
 today = datetime_now.strftime('%d %b')
 tomorrow = tomorrow_datetime.strftime('%d %b')
-logger.info('Today is: ' + today)
-logger.info('Tomorrow is: ' + tomorrow)
+log.info('Today is: ' + today)
+log.info('Tomorrow is: ' + tomorrow)
 
 rsp = Responses()
 db = DatabaseCommunication(paths.DB_PATH)
 db.set_today_4_all_users(today)
-logger.info('All users\' default dates have been set to today!')
+log.info('All users\' default dates have been set to today!')
 
 with open(paths.CONFIG_PATH, 'r') as f:
     bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
-logger.info("bot_token extracted")
+log.info("bot_token extracted")
 
 app = Flask(__name__)
 viber = Api(BotConfiguration(
@@ -47,7 +41,7 @@ viber = Api(BotConfiguration(
 ))
 
 cinemas = db.fetch_cinemas()
-logger.info("cinemas has been initialized.")
+log.info("cinemas has been initialized.")
 
 
 def remove_empty_elements(d):  # recursively remove empty lists, empty dicts, or None elements from a dictionary
@@ -63,9 +57,9 @@ def remove_empty_elements(d):  # recursively remove empty lists, empty dicts, or
         return {k: v for k, v in ((k, remove_empty_elements(v)) for k, v in d.items()) if not empty(v)}
 
 
-logger.info("--------------------------------------------------------------")
+log.info("--------------------------------------------------------------")
 for cinema_id, cinema in cinemas.items():
-    logger.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
+    log.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
     today_json = json.loads(cinema['today_json'])
     # on first run db's yesterday_json is empty - we assign today_json
     yesterday_json = json.loads(cinema['yesterday_json']) if cinema['yesterday_json'] is not None else today_json
@@ -79,7 +73,7 @@ for cinema_id, cinema in cinemas.items():
     for day in yesterday_json:
         for movie_id, movie in yesterday_json[day].items():
             yesterday_movies_set.add(movie['movie_name'])
-    logger.info("All movies from yesterday_json have been extracted.")
+    log.info("All movies from yesterday_json have been extracted.")
 
     for day in today_json:
         for movie_id, movie in today_json[day].items():
@@ -89,31 +83,31 @@ for cinema_id, cinema in cinemas.items():
                 movie.pop('booking_link')
                 # remove the movie_name to make the delete recursion work
                 movie.pop('movie_name')
-    logger.info("All movies from today_json have been extracted - today_movies_set len is: %s" % len(today_json))
+    log.info("All movies from today_json have been extracted - today_movies_set len is: %s" % len(today_json))
     today_json = remove_empty_elements(today_json)  # removes movies and days with no showings - (pre-sales)
-    logger.info("today_movies_set len after remove_empty_elements is: %s" % len(today_json))
+    log.info("today_movies_set len after remove_empty_elements is: %s" % len(today_json))
     db.update_today_jsons(cinema_id, json.dumps(today_json))
 
     # Return a set that contains the items that only exist in set 1, and not in set 2:
     diff_set = today_movies_set.difference(yesterday_movies_set)
 
     if len(diff_set) != 0:  # if the difference set's size is bigger tha 0 - we set cinemas.broadcast_movies to diff_set
-        logger.info("diff_set has %s movies for cinema %s" % (len(diff_set), cinema_id))
+        log.info("diff_set has %s movies for cinema %s" % (len(diff_set), cinema_id))
         db.update_broadcast_movies(cinema_id, ';'.join(diff_set))
-    logger.info("--------------------------------------------------------------")
+    log.info("--------------------------------------------------------------")
 
 movie_names = db.fetch_movies_names()
-logger.info("movie_names has been initialized.")
+log.info("movie_names has been initialized.")
 cinema_names = db.fetch_cinema_names()
-logger.info("cinema_names has been initialized.")
-logger.info("=================================================")
-logger.info("               Viber Bot Started!")
-logger.info("=================================================")
+log.info("cinema_names has been initialized.")
+log.info("=================================================")
+log.info("               Viber Bot Started!")
+log.info("=================================================")
 
 
 @app.route('/', methods=['POST'])
 def incoming():
-    logger.debug("Received request! Post data: {0}".format(request.get_data()))
+    log.debug("Received request! Post data: {0}".format(request.get_data()))
     # every viber message is signed, you can verify the signature using this method
     if not viber.verify_signature(request.get_data(), request.headers.get('X-Viber-Content-Signature')):
         return Response(status=403)
@@ -125,7 +119,7 @@ def incoming():
         sender_id = viber_request.sender.id
 
         message = viber_request.message.text
-        logger.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
+        log.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
         db.add_user(sender_id, sender_name, today)
 
         sender_sel_cinema = db.fetch_user(sender_id)[UsersTable.SELECTED_CINEMA_ID]
@@ -173,21 +167,21 @@ def incoming():
                 sel_day = message
 
             db.set_user_date(sender_id, sel_day)
-            logger.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
+            log.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
                 reply = rsp.movies(cinemas[sender_sel_cinema], sel_day)
                 kb = rsp.movie_keyboard(cinemas[sender_sel_cinema]['today_json'][sel_day])
             except KeyError as ke:
-                logger.error("Error while displaying movies.")
+                log.error("Error while displaying movies.")
                 reply = "No movie screenings for the selected day: *%s*" % sel_day
                 kb = None
-                logger.info(reply)
+                log.info(reply)
 
             viber.send_messages(sender_id, [
                 TextMessage(text=reply, keyboard=kb)
             ])
         elif message in movie_names:  # message here equals the name of the movie
-            logger.info(
+            log.info(
                 "SENDER_ID: '%s' selected movie '%s' for day '%s for cinema %s'" % (
                     sender_id, message, sender_sel_date, sender_sel_cinema))
             movie_id = db.fetch_movie_by_name(message, MoviesTable.MOVIE_ID)
