@@ -1,16 +1,10 @@
 import sqlite3
-import logging
 import scrapy
 import json
 import datetime
 
 from dateutil.relativedelta import relativedelta
 
-logger = logging.getLogger()
-logging.basicConfig(filename='logs/crawler.log',
-                    filemode='w',
-                    level=logging.INFO,
-                    format='[%(asctime)s] {%(filename)s:%(funcName)s():%(lineno)d} %(levelname)s -> %(message)s')
 
 API_URL = 'https://www.cinemacity.bg/bg/data-api-service/v1'
 
