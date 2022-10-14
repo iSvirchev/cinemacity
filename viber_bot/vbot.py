@@ -1,5 +1,7 @@
 import datetime
 import json
+from time import strftime
+
 import logger
 
 from queries import *
@@ -21,6 +23,8 @@ datetime_now = datetime.datetime.now()
 tomorrow_datetime = datetime_now + datetime.timedelta(days=1)
 today = datetime_now.strftime('%d %b')
 tomorrow = tomorrow_datetime.strftime('%d %b')
+url_date_format = "%Y-%m-%d %H:%M:%S"
+today_timestamp = strftime(url_date_format)
 log.info('Today is: ' + today)
 log.info('Tomorrow is: ' + tomorrow)
 
@@ -86,7 +90,7 @@ for cinema_id, cinema in cinemas.items():
     log.info("All movies from today_json have been extracted - today_movies_set len is: %s" % len(today_json))
     today_json = remove_empty_elements(today_json)  # removes movies and days with no showings - (pre-sales)
     log.info("today_movies_set len after remove_empty_elements is: %s" % len(today_json))
-    db.update_today_jsons(cinema_id, json.dumps(today_json))
+    db.update_today_json(cinema_id, json.dumps(today_json), today_timestamp)
 
     # Return a set that contains the items that only exist in set 1, and not in set 2:
     diff_set = today_movies_set.difference(yesterday_movies_set)
@@ -122,9 +126,9 @@ def incoming():
         log.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
         db.add_user(sender_id, sender_name, today)
 
-        sender_sel_cinema = db.fetch_user(sender_id)[UsersTable.SELECTED_CINEMA_ID]
+        sender_sel_cinema_id = db.fetch_user(sender_id)[UsersTable.SELECTED_CINEMA_ID]
         sender_sel_date = db.fetch_user(sender_id)[UsersTable.SELECTED_DATE]
-
+        sel_cinema_today_json = json.loads(db.fetch_cinema_by_id(sender_sel_cinema_id, CinemasTable.TODAY_JSON))
         if message.lower() == 'sub' or message.lower() == 'unsub':
             is_subscribed = db.fetch_user(sender_id)[UsersTable.SUBSCRIBED]
             sub_msg = 'An issue occurred...'
@@ -143,21 +147,21 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text=sub_msg)])
         elif message in cinema_names:
-            user_cinema_id = db.fetch_cinema_by_name(message, 0)
+            user_cinema_id = db.fetch_cinema_by_name(message, CinemasTable.CINEMA_ID)
             db.set_user_cinema(sender_id, user_cinema_id)
             viber.send_messages(sender_id, [
                 TextMessage(text="You have chosen *%s* as your favourite cinema!\n\n%s" % (message, rsp.info))
             ])
-        elif message.lower() == 'cinema' or message.lower() == 'cinemas' or sender_sel_cinema is None:
+        elif message.lower() == 'cinema' or message.lower() == 'cinemas' or sender_sel_cinema_id is None:
             viber.send_messages(sender_id, [
                 TextMessage(text="Please pick your favourite cinema so we can begin",
                             keyboard=rsp.cinemas_keyboard(cinemas))
             ])
         elif message.lower() == 'dates':
             viber.send_messages(sender_id, [
-                TextMessage(text=rsp.dates(), keyboard=rsp.days_keyboard(cinemas[sender_sel_cinema]['days']))
+                TextMessage(text=rsp.dates(), keyboard=rsp.days_keyboard(cinemas[sender_sel_cinema_id]['days']))
             ])
-        elif message in today_json or message.lower() == 'today' or message.lower() == 'tomorrow':
+        elif message in sel_cinema_today_json or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
             if message.lower() == 'today':
                 sel_day = today
@@ -169,8 +173,8 @@ def incoming():
             db.set_user_date(sender_id, sel_day)
             log.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
-                reply = rsp.movies(cinemas[sender_sel_cinema], sel_day)
-                kb = rsp.movie_keyboard(cinemas[sender_sel_cinema]['today_json'][sel_day])
+                reply = rsp.movies(cinemas[sender_sel_cinema_id], sel_day)
+                kb = rsp.movie_keyboard(cinemas[sender_sel_cinema_id]['today_json'][sel_day])
             except KeyError as ke:
                 log.error("Error while displaying movies.")
                 reply = "No movie screenings for the selected day: *%s*" % sel_day
@@ -183,12 +187,12 @@ def incoming():
         elif message in movie_names:  # message here equals the name of the movie
             log.info(
                 "SENDER_ID: '%s' selected movie '%s' for day '%s for cinema %s'" % (
-                    sender_id, message, sender_sel_date, sender_sel_cinema))
+                    sender_id, message, sender_sel_date, sender_sel_cinema_id))
             movie_id = db.fetch_movie_by_name(message, MoviesTable.MOVIE_ID)
-            screenings = cinemas[sender_sel_cinema]['today_json'][sender_sel_date][movie_id]['movie_screenings']
-            cinema_name = cinemas[sender_sel_cinema]['cinema_name']
+            screenings = cinemas[sender_sel_cinema_id]['today_json'][sender_sel_date][movie_id]['movie_screenings']
+            cinema_name = cinemas[sender_sel_cinema_id]['cinema_name']
             base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.MOVIE_LINK)
-            resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema)
+            resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema_id)
             viber.send_messages(sender_id, [
                 URLMessage(media=resp_url)
             ])

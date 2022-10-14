@@ -30,6 +30,7 @@ class CinemasTable:
     BROADCAST_MOVIES = 3
     TODAY_JSON = 4
     YESTERDAY_JSON = 5
+    TODAY_JSON_LAST_UPDATE = 6
 
 
 class UsersTable:
@@ -111,10 +112,13 @@ class DatabaseCommunication:
                 return_list.append(user[0])
         return return_list
 
-    def update_today_jsons(self, cinema_id, today_json):
+    def update_today_json(self, cinema_id, today_json, timestamp):
         with self.conn:
-            self.cursor.execute("""UPDATE cinemas SET today_json=:today_json WHERE cinema_id=:cinema_id""",
-                                {'cinema_id': cinema_id, 'today_json': today_json})
+            self.cursor.execute(
+                """UPDATE cinemas 
+                SET today_json=:today_json, today_json_last_update=:timestamp 
+                WHERE cinema_id=:cinema_id""",
+                {'cinema_id': cinema_id, 'today_json': today_json, 'timestamp': timestamp})
 
     def fetch_movies(self):
         with self.conn:
