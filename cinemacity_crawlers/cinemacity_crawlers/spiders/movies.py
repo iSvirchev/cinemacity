@@ -1,12 +1,11 @@
 import sqlite3
-
 import scrapy
 import json
 import datetime
 
 from dateutil.relativedelta import relativedelta
 
-# CINEMA_ID = '1265'  # Бургас - Mall Galeria
+
 API_URL = 'https://www.cinemacity.bg/bg/data-api-service/v1'
 
 datetime_now = datetime.datetime.now()

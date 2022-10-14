@@ -5,12 +5,28 @@
 
 
 # useful for handling different item types with a single interface
+from time import strftime
+
 from itemadapter import ItemAdapter
 import sqlite3
 import json
 
 cinemas = {}
 cinemas_to_dump = {}
+
+url_date_format = "%Y-%m-%d %H:%M:%S"
+today_timestamp = strftime(url_date_format)
+today = today_timestamp.split()[0]
+
+
+def fix_cinemas():  # we need each cinema to hold a dictionary of dates not an array of dictionaries of dates
+    for cinema_key in cinemas:
+        fixed_dict = {}
+        for date_obj in cinemas[cinema_key]:
+            for date_key in date_obj:
+                date_dict = date_obj[date_key]
+                fixed_dict[date_key] = date_dict
+        cinemas_to_dump[cinema_key] = fixed_dict
 
 
 class CinemacityCrawlersPipeline:
@@ -20,14 +36,20 @@ class CinemacityCrawlersPipeline:
         self.create_tables()
 
     def __del__(self):
-        self.fix_cinemas()
+        fix_cinemas()
         for cinema_id in cinemas_to_dump:
-            self.cursor.execute(
-                """UPDATE cinemas SET yesterday_json=(SELECT today_json FROM cinemas WHERE cinema_id=:cinema_id) 
-                WHERE cinema_id=:cinema_id;""", {'cinema_id': cinema_id})
-            self.cursor.execute(
-                """UPDATE cinemas SET today_json=:today_json, broadcast_movies=NULL WHERE cinema_id=:cinema_id""",
-                {'cinema_id': cinema_id, 'today_json': json.dumps(cinemas_to_dump[cinema_id])})
+            last_update = str(self.select_today_jsons_last_update(cinema_id))
+
+            if last_update is None:  # last_update is None - update both columns
+                self.update_yesterday_json(cinema_id)
+                self.update_today_json(cinema_id, today_timestamp)
+            else:   # last_update is not None - check if the last update was today
+                if last_update.startswith(today):  # last_update's day is today - update only today_json
+                    self.update_today_json(cinema_id, today_timestamp)
+                else:  # last_update's day has changed - update both columns
+                    self.update_yesterday_json(cinema_id)
+                    self.update_today_json(cinema_id, today_timestamp)
+
         self.conn.commit()
         self.conn.close()
 
@@ -38,7 +60,8 @@ class CinemacityCrawlersPipeline:
                                 cinema_image_url TEXT NOT NULL,
                                 broadcast_movies TEXT,
                                 today_json TEXT,
-                                yesterday_json TEXT
+                                yesterday_json TEXT,
+                                today_json_last_update TEXT
                                 )""")
         self.cursor.execute("""CREATE TABLE IF NOT EXISTS movies(
                                 movie_id TEXT PRIMARY KEY,
@@ -62,11 +85,22 @@ class CinemacityCrawlersPipeline:
                 cinemas[cinema_id].append(item[cinema_id])  # we add all the dates for the specific cinema
         return item
 
-    def fix_cinemas(self):  # we need each cinema to hold a dictionary of dates not an array of dictionaries of dates
-        for cinema_key in cinemas:
-            fixed_dict = {}
-            for date_obj in cinemas[cinema_key]:
-                for date_key in date_obj:
-                    date_dict = date_obj[date_key]
-                    fixed_dict[date_key] = date_dict
-            cinemas_to_dump[cinema_key] = fixed_dict
+    def select_today_jsons_last_update(self, cinema_id):
+        self.cursor.execute("""SELECT today_json_last_update FROM cinemas WHERE cinema_id=:cinema_id;""",
+                            {'cinema_id': cinema_id})
+        return self.cursor.fetchone()[0]
+
+    def update_today_jsons_last_update(self, cinema_id, timestamp):
+        self.cursor.execute("""UPDATE cinemas SET today_json_last_update=:timestamp WHERE cinema_id=:cinema_id""",
+                            {'cinema_id': cinema_id, 'timestamp': timestamp})
+
+    def update_today_json(self, cinema_id, timestamp):
+        self.update_today_jsons_last_update(cinema_id, timestamp)
+        self.cursor.execute(
+            """UPDATE cinemas SET today_json=:today_json, broadcast_movies=NULL WHERE cinema_id=:cinema_id""",
+            {'cinema_id': cinema_id, 'today_json': json.dumps(cinemas_to_dump[cinema_id])})
+
+    def update_yesterday_json(self, cinema_id):
+        self.cursor.execute(
+            """UPDATE cinemas SET yesterday_json=(SELECT today_json FROM cinemas WHERE cinema_id=:cinema_id) 
+            WHERE cinema_id=:cinema_id;""", {'cinema_id': cinema_id})
