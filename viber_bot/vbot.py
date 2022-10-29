@@ -17,7 +17,7 @@ from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFa
 
 log = logger.get_logger()
 log.info("=================================================")
-log.info("               Starting Viber Bot...")
+log.info("               Starting Viber Bot...             ")
 log.info("=================================================")
 datetime_now = datetime.datetime.now()
 tomorrow_datetime = datetime_now + datetime.timedelta(days=1)
@@ -105,7 +105,7 @@ log.info("movie_names has been initialized.")
 cinema_names = db.fetch_cinema_names()
 log.info("cinema_names has been initialized.")
 log.info("=================================================")
-log.info("               Viber Bot Started!")
+log.info("              Viber Bot Started!                 ")
 log.info("=================================================")
 
 
