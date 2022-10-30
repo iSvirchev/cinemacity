@@ -35,6 +35,7 @@ def initialize_cinemas():
 
 def pull_cinemas():
     log.info("Will start requesting the available dates for each cinema...")
+    return_cinemas = {}
     for cinema in cinemas:
         cinema_id = cinema['id']
         cinema_name = cinema['displayName']
@@ -60,15 +61,19 @@ def pull_cinemas():
             log.info(str(sorted_dates))
 
             log.info("Will start extracting date info for cinema: %s", cinema_name)
+            dates_dict = {'dates': {}}
             for date in sorted_dates:
-                pull_date(cinema['id'], date)
+                movies = pull_movies_for_date(cinema['id'], date)
+                dates_dict['dates'][date] = movies
             log.info("All date info extracted for cinema: %s", cinema_name)
             log.info("=================================================")
+            return_cinemas[cinema_id] = dates_dict
         else:
             log.error("The request was not processed properly.")
+    return return_cinemas
 
 
-def pull_date(cinema_id, date):
+def pull_movies_for_date(cinema_id, date):
     url = '%s/quickbook/10106/film-events/in-cinema/%s/at-date/%s?attr=&lang=en_GB' % (
         API_URL, cinema_id, date)
     rsp = requests.get(url)
@@ -78,7 +83,7 @@ def pull_date(cinema_id, date):
         data = json.loads(rsp.text)
         movies = data['body']['films']
         showings = data['body']['events']
-        all_movies = {}
+        return_movies = {}
         all_events = {}
 
         log.debug("Will start extracting the movies for cinema '%s' for date '%s'", cinema_id, date)
@@ -86,7 +91,7 @@ def pull_date(cinema_id, date):
             movie_id = movie['id']
             movie_obj = {'poster_link': movie['posterLink'].replace('md', 'sm'), 'movie_name': movie['name'],
                          'movie_link': movie['link'], 'trailer_link': movie['videoLink']}
-            all_movies[movie_id] = movie_obj
+            return_movies[movie_id] = movie_obj
             all_events[movie_id] = {'movie_screenings': []}
         log.debug("Movies extracted!")
         log.debug("Will start extracting the movie_screenings for cinema '%s' for date '%s'", cinema_id, date)
@@ -95,9 +100,16 @@ def pull_date(cinema_id, date):
             event_datetime = datetime.datetime.strptime(event['eventDateTime'], '%Y-%m-%dT%H:%M:%S')
             all_events[film_id]['movie_screenings'].append(event_datetime.strftime('%H:%M'))
         log.debug("Movie_screenings extracted!")
+        for film_id in all_events:
+            return_movies[film_id]['movie_screenings'] = all_events[film_id]['movie_screenings']
+        return return_movies
     else:
         log.error("The request was not processed properly.")
+        return None
 
 
 initialize_cinemas()
-pull_cinemas()
+cinemas_complete = pull_cinemas()
+for cin in cinemas:
+    cinemas_complete[cin['id']]['name'] = cin['displayName']
+    cinemas_complete[cin['id']]['imageUrl'] = cin['imageUrl']
