@@ -1,6 +1,6 @@
 import datetime
 import json
-
+import sqlite3
 import requests
 from dateutil.relativedelta import relativedelta
 
@@ -9,6 +9,9 @@ import paths
 from queries import *
 
 log = logger.get_logger()
+
+conn = sqlite3.connect('test.db', check_same_thread=False)
+c = conn.cursor()
 
 log.info("=================================================")
 log.info("            Starting API Requests...             ")
@@ -39,8 +42,15 @@ def pull_cinemas():
     for cinema in cinemas:
         cinema_id = cinema['id']
         cinema_name = cinema['displayName']
-        cinema_image_url = cinema['imageUrl']
-
+        image_url = cinema['imageUrl']
+        # TODO: extract this into queries.py:
+        #########
+        c.execute(
+            """INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, image_url) 
+                    VALUES (:cinema_id, :cinema_name, :image_url)""",
+                    {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url})
+        conn.commit()
+        #########
         url = '%s/quickbook/10106/dates/in-cinema/%s/until/%s?attr=&lang=en_GB' % (API_URL, cinema_id, next_year_date)
         rsp = requests.get(url)
         log.info("Response is %s for URL '%s'." % (rsp.status_code, url))
@@ -64,13 +74,22 @@ def pull_cinemas():
             dates_dict = {'dates': {}}
             for date in sorted_dates:
                 movies = pull_movies_for_date(cinema['id'], date)
+                # TODO: extract this into queries.py:
+                test = ';'.join(list(movies.keys()))
+                #########
+                c.execute(
+                    """UPDATE cinemas SET movies_today=:movies_today 
+                            WHERE cinema_id=:cinema_id""",
+                    {'movies_today': test, 'cinema_id': cinema_id})
+                conn.commit()
+                #########
                 formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%d %b')
                 dates_dict['dates'][formatted_date] = movies
             log.info("All date info extracted for cinema: %s", cinema_name)
             log.info("=================================================")
             return_cinemas[cinema_id] = dates_dict
             return_cinemas[cinema_id]['name'] = cinema_name
-            return_cinemas[cinema_id]['imageUrl'] = cinema_image_url
+            return_cinemas[cinema_id]['imageUrl'] = image_url
         else:
             log.error("The request was not processed properly.")
     return return_cinemas
@@ -92,14 +111,18 @@ def pull_movies_for_date(cinema_id, date):
         log.debug("Will start extracting the movies for cinema '%s' for date '%s'", cinema_id, date)
         for movie in movies:
             movie_id = movie['id']
-            movie_obj = {'movie_name': movie['name'],'poster_link': movie['posterLink'].replace('md', 'sm'),
-                         'movie_link': movie['link'], 'trailer_link': movie['videoLink']}
+            movie_name = movie['name']
+            poster_link = movie['posterLink'].replace('md', 'sm')
+            movie_link = movie['link']
+            trailer_link = movie['videoLink']
+            movie_obj = {'movie_name': movie_name, 'poster_link': poster_link, 'movie_link': movie['link']}
             return_movies[movie_id] = movie_obj
             all_events[movie_id] = {'movie_screenings': []}
         log.debug("Movies extracted!")
         log.debug("Will start extracting the movie_screenings for cinema '%s' for date '%s'", cinema_id, date)
         for event in showings:
             film_id = event['filmId']
+            booking_link = event['bookingLink']
             event_datetime = datetime.datetime.strptime(event['eventDateTime'], '%Y-%m-%dT%H:%M:%S')
             all_events[film_id]['movie_screenings'].append(event_datetime.strftime('%H:%M'))
         log.debug("Movie_screenings extracted!")
@@ -113,3 +136,4 @@ def pull_movies_for_date(cinema_id, date):
 
 initialize_cinemas()
 cinemas = pull_cinemas()
+conn.close()  # TODO: remove this
