@@ -39,7 +39,7 @@ def pull_cinemas():
     for cinema in cinemas:
         cinema_id = cinema['id']
         cinema_name = cinema['displayName']
-        # cinema_image_url = cinema['imageUrl']
+        cinema_image_url = cinema['imageUrl']
 
         url = '%s/quickbook/10106/dates/in-cinema/%s/until/%s?attr=&lang=en_GB' % (API_URL, cinema_id, next_year_date)
         rsp = requests.get(url)
@@ -64,10 +64,13 @@ def pull_cinemas():
             dates_dict = {'dates': {}}
             for date in sorted_dates:
                 movies = pull_movies_for_date(cinema['id'], date)
-                dates_dict['dates'][date] = movies
+                formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%d %b')
+                dates_dict['dates'][formatted_date] = movies
             log.info("All date info extracted for cinema: %s", cinema_name)
             log.info("=================================================")
             return_cinemas[cinema_id] = dates_dict
+            return_cinemas[cinema_id]['name'] = cinema_name
+            return_cinemas[cinema_id]['imageUrl'] = cinema_image_url
         else:
             log.error("The request was not processed properly.")
     return return_cinemas
@@ -89,7 +92,7 @@ def pull_movies_for_date(cinema_id, date):
         log.debug("Will start extracting the movies for cinema '%s' for date '%s'", cinema_id, date)
         for movie in movies:
             movie_id = movie['id']
-            movie_obj = {'poster_link': movie['posterLink'].replace('md', 'sm'), 'movie_name': movie['name'],
+            movie_obj = {'movie_name': movie['name'],'poster_link': movie['posterLink'].replace('md', 'sm'),
                          'movie_link': movie['link'], 'trailer_link': movie['videoLink']}
             return_movies[movie_id] = movie_obj
             all_events[movie_id] = {'movie_screenings': []}
@@ -109,7 +112,4 @@ def pull_movies_for_date(cinema_id, date):
 
 
 initialize_cinemas()
-cinemas_complete = pull_cinemas()
-for cin in cinemas:
-    cinemas_complete[cin['id']]['name'] = cin['displayName']
-    cinemas_complete[cin['id']]['imageUrl'] = cin['imageUrl']
+cinemas = pull_cinemas()
