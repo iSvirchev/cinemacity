@@ -38,18 +38,27 @@ def initialize_cinemas():
 
 def pull_cinemas():
     log.info("Will start requesting the available dates for each cinema...")
-    return_cinemas = {}
+    # return_cinemas = {}
     for cinema in cinemas:
         cinema_id = cinema['id']
         cinema_name = cinema['displayName']
         image_url = cinema['imageUrl']
-        # TODO: extract this into queries.py:
+
+        # We empty cinema_dates for current cinema - we do not need data from multiple days
+        log.info("Will delete cinema_dates table for cinema '%s'", cinema_name)
+        ########
+        c.execute(  # TODO: extract this into queries.py:
+            """DELETE FROM cinema_dates WHERE cinema_id=:cinema_id""",
+            {"cinema_id": cinema_id})
         #########
-        c.execute(
+        log.info("Dates for cinema '%s' have been deleted", cinema_name)
+        log.info("Will add '%s' to the database with id: %s" % (cinema_name, cinema_id))
+        c.execute(  # TODO: extract this into queries.py:
             """INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, image_url) 
                     VALUES (:cinema_id, :cinema_name, :image_url)""",
-                    {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url})
+            {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url})
         conn.commit()
+        log.info("'%s' has been added to the database!", cinema_name)
         #########
         url = '%s/quickbook/10106/dates/in-cinema/%s/until/%s?attr=&lang=en_GB' % (API_URL, cinema_id, next_year_date)
         rsp = requests.get(url)
@@ -72,27 +81,37 @@ def pull_cinemas():
 
             log.info("Will start extracting date info for cinema: %s", cinema_name)
             dates_dict = {'dates': {}}
+            movie_set = set()
             for date in sorted_dates:
-                movies = pull_movies_for_date(cinema['id'], date)
-                # TODO: extract this into queries.py:
-                test = ';'.join(list(movies.keys()))
-                #########
-                c.execute(
-                    """UPDATE cinemas SET movies_today=:movies_today 
-                            WHERE cinema_id=:cinema_id""",
-                    {'movies_today': test, 'cinema_id': cinema_id})
-                conn.commit()
-                #########
+                movies = list(pull_movies_for_date(cinema['id'], date))
+                log.info("All the movies in cinema '%s' have been extracted.", cinema_name)
+                for m in movies:
+                    movie_set.add(m)
+                log.info("All the movies in cinema '%s' have been added to the cinema's movie_set.", cinema_name)
                 formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%d %b')
                 dates_dict['dates'][formatted_date] = movies
+                #########
+                c.execute(  # TODO: extract this into queries.py:
+                    """INSERT INTO cinema_dates (date, cinema_id) VALUES (:date, :cinema_id)""",
+                    {'date': formatted_date, 'cinema_id': cinema_id})
+                conn.commit()
+                #########
+            movie_ids = ';'.join(movie_set)
+
+            # TODO: We need to check the date here and move today_movies to yesterday_movies
+            c.execute(  # TODO: extract
+                """UPDATE cinemas SET movies_today=:movies_today
+                        WHERE cinema_id=:cinema_id""",
+                {'movies_today': movie_ids, 'cinema_id': cinema_id})
+            conn.commit()
             log.info("All date info extracted for cinema: %s", cinema_name)
             log.info("=================================================")
-            return_cinemas[cinema_id] = dates_dict
-            return_cinemas[cinema_id]['name'] = cinema_name
-            return_cinemas[cinema_id]['imageUrl'] = image_url
+            # return_cinemas[cinema_id] = dates_dict
+            # return_cinemas[cinema_id]['name'] = cinema_name
+            # return_cinemas[cinema_id]['imageUrl'] = image_url
         else:
             log.error("The request was not processed properly.")
-    return return_cinemas
+    # return return_cinemas
 
 
 def pull_movies_for_date(cinema_id, date):
@@ -135,5 +154,7 @@ def pull_movies_for_date(cinema_id, date):
 
 
 initialize_cinemas()
-cinemas = pull_cinemas()
+# cinemas = pull_cinemas()
+pull_cinemas()
 conn.close()  # TODO: remove this
+log.info("DONE!")
