@@ -11,7 +11,7 @@ log = logger.get_logger()
 
 db = DatabaseCommunication(paths.DB_PATH)
 
-with open(paths.CONFIG_PATH, 'r') as f:
+with open(paths.TOKEN_FILE_PATH, 'r') as f:
     bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
 log.info("bot_token extracted")
 
@@ -62,7 +62,7 @@ for cinema_id, cinema in broadcast_movies_result.items():
     if broadcast_movies is not None:
         broadcast_movies = broadcast_movies.split(';')
         # If broadcast_movies for this cinema is not NULL we need check if there are any users subscribed
-        users_to_broadcast = db.fetch_subscribed_users(cinema_id)
+        users_to_broadcast = db.fetch_subscribed_to_cinema(cinema_id)
         # TODO: Sofia has 2 cinemas - if user is subscribed to either one of them - they should be notified for both
         # TODO: use 'groupId' from API
         if users_to_broadcast:  # Only broadcast to the subscribed users (if any)

@@ -19,18 +19,26 @@ class MoviesTable:
     MOVIE_ID = 0
     MOVIE_NAME = 1
     POSTER_LINK = 2
-    MOVIE_LINK = 3
+    LINK = 3
     TRAILER_LINK = 4
 
 
 class CinemasTable:
     CINEMA_ID = 0
     CINEMA_NAME = 1
-    CINEMA_IMAGE_URL = 2
-    BROADCAST_MOVIES = 3
-    TODAY_JSON = 4
-    YESTERDAY_JSON = 5
-    TODAY_JSON_LAST_UPDATE = 6
+    IMAGE_URL = 2
+    MOVIES_TODAY = 3
+    MOVIES_YESTERDAY = 4
+    DATES = 5
+    LAST_UPDATE = 6
+
+
+class Events:
+    EVENT_ID = 0
+    CINEMA_ID = 1
+    MOVIE_ID = 2
+    DATE = 3
+    EVENT_TIMES = 4
 
 
 class UsersTable:
@@ -48,17 +56,69 @@ class DatabaseCommunication:
         # self.conn = sqlite3.connect(':memory:', check_same_thread=False)  # runtime DB used for debugging
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
+        self.set_pragma_settings()
+        self.delete_events_table()
         self.create_users_table()
+        self.create_movies_table()
+        self.create_cinemas_table()
+        self.create_events_table()
+
+    def set_pragma_settings(self):
+        # https://stackoverflow.com/a/27290180/15266844
+        with self.conn:
+            self.conn.execute("""PRAGMA journal_mode = WAL""")
+            self.conn.execute("""PRAGMA synchronous = NORMAL""")
 
     def create_users_table(self):
-        self.cursor.execute("""CREATE TABLE IF NOT EXISTS users (
-                                    user_id text primary key,
-                                    user_name text,
-                                    subscribed integer default true,
-                                    selected_cinema_id text default null,
-                                    selected_date text default null
+        with self.conn:
+            self.cursor.execute("""CREATE TABLE IF NOT EXISTS users (
+                                    user_id TEXT PRIMARY KEY,
+                                    user_name TEXT,
+                                    subscribed INTEGER DEFAULT TRUE,
+                                    selected_cinema_id TEXT DEFAULT NULL,
+                                    selected_date TEXT DEFAULT NULL
                                     )""")
 
+    def create_cinemas_table(self):
+        with self.conn:
+            self.cursor.execute("""CREATE TABLE IF NOT EXISTS cinemas(
+                cinema_id        TEXT PRIMARY KEY,
+                cinema_name      TEXT,
+                image_url        TEXT,
+                movies_today     TEXT,
+                movies_yesterday TEXT,
+                dates            TEXT,
+                last_update      TEXT
+            );""")
+
+    def create_movies_table(self):
+        with self.conn:
+            self.cursor.execute("""CREATE TABLE IF NOT EXISTS movies (
+                movie_id    TEXT PRIMARY KEY,
+                movie_name  TEXT,
+                poster_link TEXT,
+                link        TEXT
+            );""")
+
+    def create_events_table(self):
+        with self.conn:
+            self.cursor.execute("""CREATE TABLE IF NOT EXISTS events (
+                event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cinema_id        TEXT,
+                movie_id         TEXT,
+                date TEXT,
+                event_times TEXT,
+                FOREIGN KEY (movie_id) REFERENCES movies (movie_id),
+                FOREIGN KEY (cinema_id) REFERENCES cinemas (cinema_id)
+                    );""")
+
+    def delete_events_table(self):
+        with self.conn:
+            self.cursor.execute("""DROP TABLE IF EXISTS events""")
+
+    ################################
+    #        USERS QUERIES
+    ################################
     def add_user(self, user_id, user_name, selected_date):
         with self.conn:
             self.cursor.execute("""INSERT OR IGNORE INTO users(user_id, user_name, selected_date) 
@@ -93,16 +153,7 @@ class DatabaseCommunication:
             self.cursor.execute("""UPDATE users SET subscribed=:subscribed WHERE user_id=:user_id""",
                                 {'subscribed': subscribed, 'user_id': user_id})
 
-    def fetch_all_subscribed(self):
-        with self.conn:
-            result = self.cursor.execute("SELECT user_id FROM users WHERE subscribed=1").fetchall()
-            return_list = []
-            for user in result:
-                return_list.append(user[0])  # 0 is the index of the user_id, if we select * rows - we use indices to
-                # access the other rows
-        return return_list
-
-    def fetch_subscribed_users(self, cinema_id):
+    def fetch_subscribed_to_cinema(self, cinema_id):
         with self.conn:
             result = self.cursor.execute(
                 """SELECT * FROM users WHERE selected_cinema_id=:cinema_id and subscribed=1;""",
@@ -112,13 +163,15 @@ class DatabaseCommunication:
                 return_list.append(user[0])
         return return_list
 
-    def update_today_json(self, cinema_id, today_json, timestamp):
+    ################################
+    #        MOVIES QUERIES
+    ################################
+    def add_movie(self, movie_id, movie_name, poster_link, link):
         with self.conn:
-            self.cursor.execute(
-                """UPDATE cinemas 
-                SET today_json=:today_json, today_json_last_update=:timestamp 
-                WHERE cinema_id=:cinema_id""",
-                {'cinema_id': cinema_id, 'today_json': today_json, 'timestamp': timestamp})
+            self.cursor.execute("""INSERT OR IGNORE INTO movies (movie_id, movie_name, poster_link, link)
+                    VALUES (:movie_id, :movie_name, :poster_link, :link)""",
+                                {'movie_id': movie_id, 'movie_name': movie_name, "poster_link": poster_link,
+                                 "link": link})
 
     def fetch_movies(self):
         with self.conn:
@@ -145,6 +198,52 @@ class DatabaseCommunication:
                                          {'movie_name': movie_name}).fetchone()[field_to_return]
         return result
 
+    ################################
+    #        CINEMAS QUERIES
+    ################################
+    def add_cinema(self, cinema_id, cinema_name, image_url, dates):
+        with self.conn:
+            self.cursor.execute("""INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, image_url, dates)
+                        VALUES (:cinema_id, :cinema_name, :image_url, :dates)""",
+                                {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url,
+                                 'dates': dates})
+
+    def fetch_movies_today(self, cinema_id):
+        movie_ids_today = None
+        with self.conn:
+            self.cursor.execute("""SELECT movies_today FROM cinemas WHERE cinema_id=:cinema_id""",
+                                {'cinema_id': cinema_id})
+            movie_ids_today = self.cursor.fetchone()[0]
+        return movie_ids_today
+
+    def update_movies_today(self, movie_ids, cinema_id, today):
+        with self.conn:
+            self.cursor.execute("""UPDATE cinemas SET movies_today=:movies_today, last_update=:last_update
+                        WHERE cinema_id=:cinema_id""",
+                                {'movies_today': movie_ids, 'cinema_id': cinema_id, 'last_update': today})
+
+    def fetch_movies_yesterday(self, cinema_id):
+        movie_ids_yesterday = None
+        with self.conn:
+            self.cursor.execute("""SELECT movies_yesterday FROM cinemas WHERE cinema_id=:cinema_id""",
+                                {'cinema_id': cinema_id})
+            movie_ids_yesterday = self.c.fetchone()[0]
+        return movie_ids_yesterday
+
+    def update_movies_yesterday(self, cinema_id):
+        movie_ids_today = self.fetch_movies_today(cinema_id)
+        with self.conn:
+            self.cursor.execute("""UPDATE cinemas SET movies_yesterday=:movies_yesterday WHERE cinema_id=:cinema_id""",
+                                {'cinema_id': cinema_id, 'movies_yesterday': movie_ids_today})
+
+    def fetch_last_update(self, cinema_id):
+        last_update = None
+        with self.conn:
+            self.cursor.execute("""SELECT last_update FROM cinemas WHERE cinema_id=:cinema_id""",
+                                {'cinema_id': cinema_id})
+            last_update = self.cursor.fetchone()[0]
+        return last_update
+
     def fetch_cinemas(self):
         with self.conn:
             rows = self.cursor.execute("""SELECT * FROM cinemas""").fetchall()
@@ -170,22 +269,15 @@ class DatabaseCommunication:
                                          {'cinema_id': cinema_id}).fetchone()[field_to_return]
         return result
 
-    def reset_broadcast_movies(self, cinema_id):
+    ################################
+    #        EVENTS QUERIES
+    ################################
+    def add_event(self, cinema_id, movie_id, date, event_times):
         with self.conn:
-            self.cursor.execute("""UPDATE cinemas SET broadcast_movies=NULL WHERE cinema_id=:cinema_id""",
-                                {'cinema_id': cinema_id})
-
-    def update_broadcast_movies(self, cinema_id, broadcast_movies):
-        with self.conn:
-            self.cursor.execute("""UPDATE cinemas SET broadcast_movies=:broadcast_movies WHERE cinema_id=:cinema_id""",
-                                {'broadcast_movies': broadcast_movies, 'cinema_id': cinema_id})
-
-    def fetch_broadcast_movies(self):
-        with self.conn:
-            result = self.cursor.execute("""SELECT * FROM cinemas""").fetchall()
-            headers = self.cursor.description
-        return convert_result_to_dict(result, headers)
-
+            self.cursor.execute("""INSERT INTO events (cinema_id, movie_id, date, event_times) 
+            VALUES (:cinema_id, :movie_id, :date, :event_times)""",
+                                {'cinema_id': cinema_id, 'movie_id': movie_id, 'date': date,
+                                 'event_times': event_times})
 # self.cursor.row_factory = lambda cursor, row: row[0]
 # https://stackoverflow.com/a/23115247/15266844
 # https://docs.python.org/3/library/sqlite3.html

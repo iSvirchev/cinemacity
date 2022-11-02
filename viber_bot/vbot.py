@@ -33,7 +33,7 @@ db = DatabaseCommunication(paths.DB_PATH)
 db.set_today_4_all_users(today)
 log.info('All users\' default dates have been set to today!')
 
-with open(paths.CONFIG_PATH, 'r') as f:
+with open(paths.TOKEN_FILE_PATH, 'r') as f:
     bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
 log.info("bot_token extracted")
 
