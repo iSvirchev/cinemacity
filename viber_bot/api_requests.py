@@ -43,8 +43,8 @@ def pull_cinemas():
         cinema_name = cinema['displayName']
         image_url = cinema['imageUrl']
 
-        # delete_cinema_dates_for_cinema_id()
-        # add_cinema()
+        # delete_cinema_dates_for_cinema_id()   # DB
+        # add_cinema()   # DB
         url = '%s/quickbook/10106/dates/in-cinema/%s/until/%s?attr=&lang=en_GB' % (API_URL, cinema_id, next_year_date)
         rsp = requests.get(url)
         log.info("Response is %s for URL '%s'." % (rsp.status_code, url))
@@ -76,8 +76,8 @@ def pull_cinemas():
                 log.info("All the movies in cinema '%s' have been added to the cinema's movie_set.", cinema_name)
                 formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%d %b')
                 dates_dict['dates'][formatted_date] = all_movies_for_cinema
-                # add_cinema_date()
-            # update_movies_today()
+                # add_cinema_date()   # DB
+            # update_movies_today()   # DB
             log.info("All date info extracted for cinema: %s", cinema_name)
             log.info("=================================================")
             return_cinemas[cinema_id] = dates_dict
@@ -109,7 +109,7 @@ def pull_movies_for_date(cinema_id, date):
             link = movie['link']
             # trailer_link = movie['videoLink']   # might need later - currently not used
 
-            # add_movie()
+            # add_movie()   # DB
             movie_obj = {'movie_name': movie_name, 'poster_link': poster_link, 'movie_link': link}
             return_movies[movie_id] = movie_obj
             all_events[movie_id] = {'movie_screenings': []}
@@ -125,7 +125,7 @@ def pull_movies_for_date(cinema_id, date):
         log.debug("Movie_screenings extracted!")
         for film_id in all_events:
             all_event_times_arr = all_events[film_id]['movie_screenings']
-            # add_event()
+            # add_event()   # DB query location
             return_movies[film_id]['movie_screenings'] = all_event_times_arr
         return return_movies
     else:
@@ -157,32 +157,89 @@ else:
 db_start_time = time.time()
 # We empty cinema_dates for current cinema - we do not need data from multiple days
 
-conn = sqlite3.connect('test.db', check_same_thread=False)
+conn = sqlite3.connect('test.db')
 c = conn.cursor()
+
+#################################
+#      DB operations start
+#################################
+
+# https://stackoverflow.com/a/27290180/15266844
+with conn:
+    conn.execute("""PRAGMA journal_mode = WAL""")
+    conn.execute("""PRAGMA synchronous = NORMAL""")
 
 
 def delete_events():
     with conn:
         c.execute("""DELETE FROM events""")
+        c.execute("""DROP TABLE IF EXISTS events""")
 
 
-def delete_cinema_dates_for_cinema_id(cinema_id):
+def delete_cinema_movies():
     with conn:
-        c.execute("""DELETE FROM cinema_dates WHERE cinema_id=:cinema_id""",
-                  {"cinema_id": cinema_id})
+        c.execute("""DELETE FROM cinema_movies""")
+        c.execute("""DROP TABLE IF EXISTS cinema_movies""")
 
 
-def add_cinema(cinema_id, cinema_name, image_url):
+def create_tables():
     with conn:
-        c.execute("""INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, image_url)
-                    VALUES (:cinema_id, :cinema_name, :image_url)""",
-                  {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url})
+        c.execute("""CREATE TABLE IF NOT EXISTS cinemas(
+            cinema_id        TEXT PRIMARY KEY,
+            cinema_name      TEXT,
+            image_url        TEXT,
+            movies_today     TEXT,
+            movies_yesterday TEXT,
+            dates            TEXT
+        );""")
+        c.execute("""CREATE TABLE IF NOT EXISTS movies (
+            movie_id    TEXT PRIMARY KEY,
+            movie_name  TEXT,
+            poster_link TEXT,
+            link        TEXT
+        );""")
+        c.execute("""CREATE TABLE IF NOT EXISTS cinema_movies
+        (
+            cinema_movies_id INTEGER PRIMARY KEY AUTOINCREMENT,
+            cinema_id        TEXT,
+            movie_id         TEXT,
+            date TEXT,
+            FOREIGN KEY (movie_id) REFERENCES movies (movie_id),
+            FOREIGN KEY (cinema_id) REFERENCES cinemas (cinema_id)
+        );""")
+        c.execute("""CREATE TABLE IF NOT EXISTS events (
+            event_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+            cinema_movies_id TEXT,
+            date             TEXT,
+            event_times      TEXT,
+            FOREIGN KEY (cinema_movies_id) REFERENCES cinema_movies (cinema_movies_id)
+        );""")
+        c.execute("""CREATE TABLE IF NOT EXISTS users (
+            user_id            TEXT PRIMARY KEY,
+            user_name          TEXT,
+            subscribed         INTEGER DEFAULT TRUE,
+            selected_cinema_id TEXT,
+            selected_date      TEXT
+        );""")
 
 
-def add_cinema_date(date_stamp, cinema_id):
+# def delete_cinema_dates_for_cinema_id(cinema_id):
+#     with conn:
+#         c.execute("""DELETE FROM cinema_dates WHERE cinema_id=:cinema_id""",
+#                   {"cinema_id": cinema_id})
+
+
+def add_cinema(cinema_id, cinema_name, image_url, dates):
     with conn:
-        c.execute("""INSERT INTO cinema_dates (date, cinema_id) VALUES (:date, :cinema_id)""",
-                  {'date': date_stamp, 'cinema_id': cinema_id})
+        c.execute("""INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, image_url, dates)
+                    VALUES (:cinema_id, :cinema_name, :image_url, :dates)""",
+                  {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url, 'dates': dates})
+
+
+# def add_cinema_date(date_stamp, cinema_id):
+#     with conn:
+#         c.execute("""INSERT INTO cinema_dates (date, cinema_id) VALUES (:date, :cinema_id)""",
+#                   {'date': date_stamp, 'cinema_id': cinema_id})
 
 
 def add_movie(movie_id, movie_name, poster_link, link):
@@ -192,11 +249,11 @@ def add_movie(movie_id, movie_name, poster_link, link):
                   {'movie_id': movie_id, 'movie_name': movie_name, "poster_link": poster_link, "link": link})
 
 
-def add_event(movie_id, cinema_id, date_stamp, event_times):
-    with conn:
-        c.execute("""INSERT INTO events (movie_id, cinema_id, date, event_times)
-                VALUES (:movie_id, :cinema_id, :date, :event_times)""",
-                  {'movie_id': movie_id, 'cinema_id': cinema_id, 'date': date_stamp, "event_times": event_times})
+# def add_event(movie_id, cinema_id, date_stamp, event_times):
+#     with conn:
+#         c.execute("""INSERT INTO events (movie_id, cinema_id, date, event_times)
+#                 VALUES (:movie_id, :cinema_id, :date, :event_times)""",
+#                   {'movie_id': movie_id, 'cinema_id': cinema_id, 'date': date_stamp, "event_times": event_times})
 
 
 def update_movies_today(movie_ids, cinema_id):
@@ -206,22 +263,34 @@ def update_movies_today(movie_ids, cinema_id):
                   {'movies_today': movie_ids, 'cinema_id': cinema_id})
 
 
-delete_events()
+def add_cinema_movie(cinema_id, movie_id, date):
+    with conn:
+        c.execute("""INSERT INTO cinema_movies (cinema_id, movie_id, date) 
+        VALUES (:cinema_id, :movie_id, :date)""", {'cinema_id': cinema_id, 'movie_id': movie_id, 'date': date})
 
+
+#################################
+#      DB operations end
+#################################
+
+delete_events()
+delete_cinema_movies()
+create_tables()
 for cinema_id, cinema in mocked_data.items():
     cinema_name = cinema['name']
     image_url = cinema['imageUrl']
     dates = cinema['dates']
+    all_dates = ';'.join(dates)
 
     log.info("Dates for cinema '%s' have been deleted", cinema_name)
-    delete_cinema_dates_for_cinema_id(cinema_id)
-    add_cinema(cinema_id, cinema_name, image_url)
+    # delete_cinema_dates_for_cinema_id(cinema_id)
+    add_cinema(cinema_id, cinema_name, image_url, all_dates)
     log.info("'%s' has been added to the database!", cinema_name)
 
     movie_set = set()
     for date_stamp, movies in dates.items():
-        add_cinema_date(date_stamp, cinema_id)
-        log.info("Date '%s' added to the DB for cinema '%s'" % (date_stamp, cinema_name))
+        # add_cinema_date(date_stamp, cinema_id)
+        # log.info("Date '%s' added to the DB for cinema '%s'" % (date_stamp, cinema_name))
         for m in list(movies):
             movie_set.add(m)
 
@@ -232,14 +301,13 @@ for cinema_id, cinema in mocked_data.items():
             event_times = ';'.join(movie['movie_screenings'])
 
             add_movie(movie_id, movie_name, poster_link, link)
-            add_event(movie_id, cinema_id, date_stamp, event_times)
+            add_cinema_movie(cinema_id, movie_id, date_stamp)
+            # add_event(movie_id, cinema_id, date_stamp, event_times)
 
     # TODO: We need to check the date here and move today_movies to yesterday_movies
     movie_ids = ';'.join(movie_set)
     update_movies_today(movie_ids, cinema_id)
     log.info("Today's movies have been updated for '%s'", cinema_name)
-conn.commit()
-conn.close()
 
 db_end_time = time.time()
 log.info("DB operations are DONE! Working time is: %d", db_end_time - db_start_time)
