@@ -62,47 +62,18 @@ def remove_empty_elements(d):  # recursively remove empty lists, empty dicts, or
 
 
 log.info("--------------------------------------------------------------")
-for cinema_id, cinema in cinemas.items():
-    log.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
-    today_json = json.loads(cinema['today_json'])
-    # on first run db's yesterday_json is empty - we assign today_json
-    yesterday_json = json.loads(cinema['yesterday_json']) if cinema['yesterday_json'] is not None else today_json
-    cinema['today_json'] = today_json
-    cinema['yesterday_json'] = yesterday_json
-    cinema['days'] = list(cinema['today_json'].keys())
+# for cinema_id, cinema in cinemas.items():
+#     log.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
+#
+#     today_json = remove_empty_elements(today_json)  # removes movies and days with no showings - (pre-sales)
+#     # the above can be fixed with a proper query that filters NULL event_times
 
-    yesterday_movies_set = set()  # we extract all the movies from yesterday's JSON file
-    today_movies_set = set()  # we extract ALL the movies from the whole week into this set
-
-    for day in yesterday_json:
-        for movie_id, movie in yesterday_json[day].items():
-            yesterday_movies_set.add(movie['movie_name'])
-    log.info("All movies from yesterday_json have been extracted.")
-
-    for day in today_json:
-        for movie_id, movie in today_json[day].items():
-            today_movies_set.add(movie['movie_name'])
-            if not movie['movie_screenings']:  # if no movie_screenings - we remove the movie
-                # remove the booking_link to make the delete recursion work
-                movie.pop('booking_link')
-                # remove the movie_name to make the delete recursion work
-                movie.pop('movie_name')
-    log.info("All movies from today_json have been extracted - today_movies_set len is: %s" % len(today_json))
-    today_json = remove_empty_elements(today_json)  # removes movies and days with no showings - (pre-sales)
-    log.info("today_movies_set len after remove_empty_elements is: %s" % len(today_json))
-    db.update_today_json(cinema_id, json.dumps(today_json), today_timestamp)
-
-    # Return a set that contains the items that only exist in set 1, and not in set 2:
-    diff_set = today_movies_set.difference(yesterday_movies_set)
-
-    if len(diff_set) != 0:  # if the difference set's size is bigger tha 0 - we set cinemas.broadcast_movies to diff_set
-        log.info("diff_set has %s movies for cinema %s" % (len(diff_set), cinema_id))
-        db.update_broadcast_movies(cinema_id, ';'.join(diff_set))
-    log.info("--------------------------------------------------------------")
 
 movie_names = db.fetch_movies_names()
 log.info("movie_names has been initialized.")
-cinema_names = db.fetch_cinema_names()
+cinema_names = set()
+for cinema in cinemas.values():
+    cinema_names.add(cinema['cinema_name'])
 log.info("cinema_names has been initialized.")
 log.info("=================================================")
 log.info("              Viber Bot Started!                 ")
@@ -128,7 +99,7 @@ def incoming():
 
         sender_sel_cinema_id = db.fetch_user(sender_id)[UsersTable.SELECTED_CINEMA_ID]
         sender_sel_date = db.fetch_user(sender_id)[UsersTable.SELECTED_DATE]
-        sel_cinema_today_json = json.loads(db.fetch_cinema_by_id(sender_sel_cinema_id, CinemasTable.TODAY_JSON))
+        sel_cinema_dates = db.fetch_cinema_by_id(sender_sel_cinema_id, CinemasTable.DATES).split(';')
         if message.lower() == 'sub' or message.lower() == 'unsub':
             is_subscribed = db.fetch_user(sender_id)[UsersTable.SUBSCRIBED]
             sub_msg = 'An issue occurred...'
@@ -161,7 +132,7 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text=rsp.dates(), keyboard=rsp.days_keyboard(cinemas[sender_sel_cinema_id]['days']))
             ])
-        elif message in sel_cinema_today_json or message.lower() == 'today' or message.lower() == 'tomorrow':
+        elif message in sel_cinema_dates or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
             if message.lower() == 'today':
                 sel_day = today
@@ -173,7 +144,7 @@ def incoming():
             db.set_user_date(sender_id, sel_day)
             log.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
-                reply = rsp.movies(cinemas[sender_sel_cinema_id], sel_day)
+                reply = rsp.movies(sender_sel_cinema_id, sel_day)
                 kb = rsp.movie_keyboard(cinemas[sender_sel_cinema_id]['today_json'][sel_day])
             except KeyError as ke:
                 log.error("Error while displaying movies.")
@@ -189,9 +160,10 @@ def incoming():
                 "SENDER_ID: '%s' selected movie '%s' for day '%s for cinema %s'" % (
                     sender_id, message, sender_sel_date, sender_sel_cinema_id))
             movie_id = db.fetch_movie_by_name(message, MoviesTable.MOVIE_ID)
-            screenings = cinemas[sender_sel_cinema_id]['today_json'][sender_sel_date][movie_id]['movie_screenings']
+            event_times = db.fetch_event_times(sender_sel_cinema_id, movie_id, sender_sel_date, Events.EVENT_TIMES)
+            screenings = event_times.split(';')
             cinema_name = cinemas[sender_sel_cinema_id]['cinema_name']
-            base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.MOVIE_LINK)
+            base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.LINK)
             resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema_id)
             viber.send_messages(sender_id, [
                 URLMessage(media=resp_url)

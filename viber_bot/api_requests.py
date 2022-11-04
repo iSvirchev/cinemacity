@@ -71,11 +71,11 @@ def pull_cinemas():
             movie_set = set()
             for date in sorted_dates:
                 all_movies_for_cinema = pull_movies_for_date(cinema['id'], date)
-                log.info("All the movies in cinema '%s' have been extracted.", cinema_name)
+                log.debug("All the movies in cinema '%s' have been extracted.", cinema_name)
                 all_movies_for_cinema_as_list = list(all_movies_for_cinema)
                 for m in all_movies_for_cinema_as_list:
                     movie_set.add(m)
-                log.info("All the movies in cinema '%s' have been added to the cinema's movie_set.", cinema_name)
+                log.debug("All the movies in cinema '%s' have been added to the cinema's movie_set.", cinema_name)
                 formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%d %b')
                 dates_dict['dates'][formatted_date] = all_movies_for_cinema
                 # add_cinema_date()   # DB
@@ -167,6 +167,8 @@ else:
 
 db_start_time = time.time()
 db = DatabaseCommunication(paths.DB_PATH)
+db.delete_events_table()
+db.create_events_table()
 
 for cinema_id, cinema in cinemas.items():
     cinema_name = cinema['name']

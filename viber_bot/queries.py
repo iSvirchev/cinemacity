@@ -57,11 +57,9 @@ class DatabaseCommunication:
         self.conn = sqlite3.connect(db_path, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.set_pragma_settings()
-        self.delete_events_table()
         self.create_users_table()
         self.create_movies_table()
         self.create_cinemas_table()
-        self.create_events_table()
 
     def set_pragma_settings(self):
         # https://stackoverflow.com/a/27290180/15266844
@@ -278,6 +276,32 @@ class DatabaseCommunication:
             VALUES (:cinema_id, :movie_id, :date, :event_times)""",
                                 {'cinema_id': cinema_id, 'movie_id': movie_id, 'date': date,
                                  'event_times': event_times})
+
+    def fetch_event_times(self, cinema_id, movie_id, date, field_to_return):
+        with self.conn:
+            result = self.cursor.execute(
+                """SELECT e.event_id, e.event_times
+                FROM events as e
+                JOIN cinemas c on e.cinema_id = c.cinema_id
+                JOIN movies m on e.movie_id = m.movie_id
+                WHERE c.cinema_id=:cinema_id
+                AND m.movie_id=:movie_id
+                AND e.date=:date;""",
+                {'cinema_id': cinema_id, 'movie_id': movie_id, 'date': date}).fetchone()[field_to_return]
+        return result
+
+    def fetch_movies(self, cinema_id, date):
+        with self.conn:
+            result = self.cursor.execute(
+                """SELECT c.cinema_name, c.cinema_id, m.movie_id, m.movie_name
+                FROM events as e
+                JOIN cinemas c on e.cinema_id = c.cinema_id
+                JOIN movies m on e.movie_id = m.movie_id
+                WHERE c.cinema_id=:cinema_id
+                AND e.date=:date;""",
+                {'cinema_id': cinema_id, 'date': date}).fetchall()
+
+
 # self.cursor.row_factory = lambda cursor, row: row[0]
 # https://stackoverflow.com/a/23115247/15266844
 # https://docs.python.org/3/library/sqlite3.html

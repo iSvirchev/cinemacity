@@ -8,7 +8,9 @@ from error_codes import ErrorCodes
 from queries import *
 
 log = logger.get_logger()
-
+log.info("=================================================")
+log.info("             Starting Broadcaster...             ")
+log.info("=================================================")
 db = DatabaseCommunication(paths.DB_PATH)
 
 with open(paths.TOKEN_FILE_PATH, 'r') as f:
