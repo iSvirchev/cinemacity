@@ -2,7 +2,6 @@ import paths
 from queries import *
 
 db = DatabaseCommunication(paths.DB_PATH)
-# movies = db.fetch_movies()
 
 
 class Responses:
@@ -13,14 +12,17 @@ class Responses:
            '*Cinemas* - to pick your favourite cinema\n' \
            '*Sub/Unsub* - to subscribed/unsubscribe for new movies in cinema updates'
 
-    def movies(self, cinema, movies_resp_day):
-        movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema['cinema_name'], movies_resp_day)
-        movies = cinema['today_json'][movies_resp_day]
-        for movie_id, movie in movies.items():
-            movies_resp = movies_resp + '\n' + movie['movie_name']
+    def movies(self, cinema_id, date,  movies_in_cinema):
+        movies = list(movies_in_cinema.keys())
+        cinema_name = db.fetch_cinema_by_id(cinema_id)[CinemasTable.CINEMA_NAME]
+
+        movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema_name, date)
+        for movie in movies:
+            movies_resp + '\n' + movie
+
         return movies_resp
 
-    def days_keyboard(self, days_arr):
+    def dates_kb(self, dates):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
@@ -42,16 +44,16 @@ class Responses:
             "ActionBody": "<add_action_body>",
             "Text": "<add_btn_txt>",
         }
-        for day in days_arr:
+        for date in dates:
             day_btn = button_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
-            day_btn['ActionBody'] = day
-            day_btn['Text'] = '<font size=\"24\">%s</font>' % day
-            day_btn['BgColor'] = colour_codes[days_arr.index(day)]
+            day_btn['ActionBody'] = date
+            day_btn['Text'] = '<font size=\"24\">%s</font>' % date
+            day_btn['BgColor'] = colour_codes[dates.index(date)]
             keyboard['Buttons'].append(day_btn)
 
         return keyboard
 
-    def movie_keyboard(self, movies_on_sel_day):
+    def movie_kb(self, movies_on_sel_date):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
@@ -69,12 +71,13 @@ class Responses:
             "Text": "<add_btn_txt>"
         }
 
-        for m_key, m_value in movies_on_sel_day.items():
-            m_poster = db.fetch_movie_by_id(m_key, MoviesTable.POSTER_LINK)
+        for movie_id, movie in movies_on_sel_date.items():
+            m_poster = movie['poster_link']
+            m_name = movie['movie_name']
 
             day_btn = m_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
-            day_btn['ActionBody'] = m_value['movie_name']
-            day_btn['Text'] = m_value['movie_name']
+            day_btn['ActionBody'] = m_name
+            day_btn['Text'] = m_name
             day_btn['BgMedia'] = m_poster
             keyboard['Buttons'].append(day_btn)
 
@@ -86,7 +89,7 @@ class Responses:
         #     dates_resp = dates_resp + '\n' + day_resp
         return dates_resp
 
-    def cinemas_keyboard(self, cinemas):
+    def cinemas_kb(self, cinemas):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
@@ -104,11 +107,12 @@ class Responses:
             "TextSize": "regular",
             "TextVAlign": "middle",
         }
-        for cinema_id in cinemas:
+        for cinema_id, cinema in cinemas.items():
+            cinema_name = cinema['cinema_name']
             day_btn = c_btn_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
-            day_btn['ActionBody'] = cinemas[cinema_id]['cinema_name']
-            day_btn['Text'] = "<font color=\"#ffffff\"><b>%s</b></font>" % cinemas[cinema_id]['cinema_name']
-            day_btn['BgMedia'] = cinemas[cinema_id]['cinema_image_url']
+            day_btn['ActionBody'] = cinema_name
+            day_btn['Text'] = "<font color=\"#ffffff\"><b>%s</b></font>" % cinema_name
+            day_btn['BgMedia'] = cinema['image_url']
             keyboard['Buttons'].append(day_btn)
 
         return keyboard

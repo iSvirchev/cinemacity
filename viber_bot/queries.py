@@ -20,7 +20,6 @@ class MoviesTable:
     MOVIE_NAME = 1
     POSTER_LINK = 2
     LINK = 3
-    TRAILER_LINK = 4
 
 
 class CinemasTable:
@@ -70,16 +69,16 @@ class DatabaseCommunication:
     def create_users_table(self):
         with self.conn:
             self.cursor.execute("""CREATE TABLE IF NOT EXISTS users (
-                                    user_id TEXT PRIMARY KEY,
-                                    user_name TEXT,
-                                    subscribed INTEGER DEFAULT TRUE,
-                                    selected_cinema_id TEXT DEFAULT NULL,
-                                    selected_date TEXT DEFAULT NULL
-                                    )""")
+                user_id TEXT PRIMARY KEY,
+                user_name TEXT,
+                subscribed INTEGER DEFAULT TRUE,
+                selected_cinema_id TEXT DEFAULT NULL,
+                selected_date TEXT DEFAULT NULL
+                )""")
 
     def create_cinemas_table(self):
         with self.conn:
-            self.cursor.execute("""CREATE TABLE IF NOT EXISTS cinemas(
+            self.cursor.execute("""CREATE TABLE IF NOT EXISTS cinemas (
                 cinema_id        TEXT PRIMARY KEY,
                 cinema_name      TEXT,
                 image_url        TEXT,
@@ -139,8 +138,9 @@ class DatabaseCommunication:
 
     def fetch_user(self, user_id):
         with self.conn:
-            self.cursor.execute("SELECT * FROM users WHERE user_id=:user_id", {'user_id': user_id})
-        return self.cursor.fetchone()
+            result = self.cursor.execute("SELECT * FROM users WHERE user_id=:user_id",
+                                         {'user_id': user_id}).fetchone()
+        return result
 
     def set_today_4_all_users(self, selected_date):
         with self.conn:
@@ -184,16 +184,16 @@ class DatabaseCommunication:
             self.cursor.row_factory = None
         return rows
 
-    def fetch_movie_by_id(self, movie_id, field_to_return):
+    def fetch_movie_by_id(self, movie_id):
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM movies WHERE movie_id=:movie_id""",
-                                         {'movie_id': movie_id}).fetchone()[field_to_return]
+                                         {'movie_id': movie_id}).fetchone()
         return result
 
-    def fetch_movie_by_name(self, movie_name, field_to_return):
+    def fetch_movie_by_name(self, movie_name):
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM movies WHERE movie_name=:movie_name""",
-                                         {'movie_name': movie_name}).fetchone()[field_to_return]
+                                         {'movie_name': movie_name}).fetchone()
         return result
 
     ################################
@@ -205,6 +205,11 @@ class DatabaseCommunication:
                         VALUES (:cinema_id, :cinema_name, :image_url, :dates)""",
                                 {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url,
                                  'dates': dates})
+
+    def update_cinema_dates(self, cinema_id, dates):
+        with self.conn:
+            self.cursor.execute("""UPDATE cinemas SET dates=:dates WHERE cinema_id=:cinema_id""",
+                                {'cinema_id': cinema_id, 'dates': dates})
 
     def fetch_movies_today(self, cinema_id):
         movie_ids_today = None
@@ -235,7 +240,6 @@ class DatabaseCommunication:
                                 {'cinema_id': cinema_id, 'movies_yesterday': movie_ids_today})
 
     def fetch_last_update(self, cinema_id):
-        last_update = None
         with self.conn:
             self.cursor.execute("""SELECT last_update FROM cinemas WHERE cinema_id=:cinema_id""",
                                 {'cinema_id': cinema_id})
@@ -248,23 +252,23 @@ class DatabaseCommunication:
             headers = self.cursor.description
         return convert_result_to_dict(rows, headers)
 
-    def fetch_cinema_names(self):
-        with self.conn:
-            self.cursor.row_factory = lambda cursor, row: row[0]
-            rows = self.cursor.execute("""SELECT cinema_name FROM cinemas""").fetchall()
-            self.cursor.row_factory = None
-        return rows
+    # def fetch_cinema_names(self):
+    #     with self.conn:
+    #         self.cursor.row_factory = lambda cursor, row: row[0]
+    #         rows = self.cursor.execute("""SELECT cinema_name FROM cinemas""").fetchall()
+    #         self.cursor.row_factory = None
+    #     return rows
 
-    def fetch_cinema_by_name(self, cinema_name, field_to_return):
+    def fetch_cinema_by_name(self, cinema_name):
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM cinemas WHERE cinema_name=:cinema_name""",
-                                         {'cinema_name': cinema_name}).fetchone()[field_to_return]
+                                         {'cinema_name': cinema_name}).fetchone()
         return result
 
-    def fetch_cinema_by_id(self, cinema_id, field_to_return):
+    def fetch_cinema_by_id(self, cinema_id):
         with self.conn:
             result = self.cursor.execute("""SELECT * FROM cinemas WHERE cinema_id=:cinema_id""",
-                                         {'cinema_id': cinema_id}).fetchone()[field_to_return]
+                                         {'cinema_id': cinema_id}).fetchone()
         return result
 
     ################################
@@ -277,30 +281,30 @@ class DatabaseCommunication:
                                 {'cinema_id': cinema_id, 'movie_id': movie_id, 'date': date,
                                  'event_times': event_times})
 
-    def fetch_event_times(self, cinema_id, movie_id, date, field_to_return):
+    def fetch_event_times(self, cinema_id, movie_id, date):
         with self.conn:
             result = self.cursor.execute(
-                """SELECT e.event_id, e.event_times
-                FROM events as e
+                """SELECT e.event_times FROM events as e
                 JOIN cinemas c on e.cinema_id = c.cinema_id
                 JOIN movies m on e.movie_id = m.movie_id
                 WHERE c.cinema_id=:cinema_id
                 AND m.movie_id=:movie_id
                 AND e.date=:date;""",
-                {'cinema_id': cinema_id, 'movie_id': movie_id, 'date': date}).fetchone()[field_to_return]
+                {'cinema_id': cinema_id, 'movie_id': movie_id, 'date': date}).fetchone()
         return result
 
-    def fetch_movies(self, cinema_id, date):
+    def fetch_movies_in_cinema_by_date(self, cinema_id, date):
         with self.conn:
-            result = self.cursor.execute(
-                """SELECT c.cinema_name, c.cinema_id, m.movie_id, m.movie_name
+            rows = self.cursor.execute(
+                """SELECT m.movie_name, m.poster_link, m.link
                 FROM events as e
                 JOIN cinemas c on e.cinema_id = c.cinema_id
                 JOIN movies m on e.movie_id = m.movie_id
                 WHERE c.cinema_id=:cinema_id
                 AND e.date=:date;""",
                 {'cinema_id': cinema_id, 'date': date}).fetchall()
-
+            headers = self.cursor.description
+        return convert_result_to_dict(rows, headers)
 
 # self.cursor.row_factory = lambda cursor, row: row[0]
 # https://stackoverflow.com/a/23115247/15266844

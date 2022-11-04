@@ -176,8 +176,13 @@ for cinema_id, cinema in cinemas.items():
     dates = cinema['dates']
     all_dates = ';'.join(dates)
 
-    db.add_cinema(cinema_id, cinema_name, image_url, all_dates)
-    log.info("'%s' has been added to the database!", cinema_name)
+    db_cinema = db.fetch_cinema_by_id(cinema_id)
+    if db_cinema is None:
+        db.add_cinema(cinema_id, cinema_name, image_url, all_dates)  # CHECK THIS - we need to update dates
+        log.info("'%s' has been added to the database!", cinema_name)
+    else:
+        db.update_cinema_dates(cinema_id, all_dates)
+        log.info("'%s''s dates have been updated in the database!")
 
     movie_set = set()
     for date_stamp, movies in dates.items():

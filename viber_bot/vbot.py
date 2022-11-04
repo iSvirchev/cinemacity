@@ -1,9 +1,9 @@
 import datetime
 import json
-from time import strftime
-
+import paths
 import logger
 
+from time import strftime
 from queries import *
 from responses import Responses
 import paths
@@ -99,7 +99,7 @@ def incoming():
 
         sender_sel_cinema_id = db.fetch_user(sender_id)[UsersTable.SELECTED_CINEMA_ID]
         sender_sel_date = db.fetch_user(sender_id)[UsersTable.SELECTED_DATE]
-        sel_cinema_dates = db.fetch_cinema_by_id(sender_sel_cinema_id, CinemasTable.DATES).split(';')
+        sel_cinema_dates = db.fetch_cinema_by_id(sender_sel_cinema_id)[CinemasTable.DATES].split(';')
         if message.lower() == 'sub' or message.lower() == 'unsub':
             is_subscribed = db.fetch_user(sender_id)[UsersTable.SUBSCRIBED]
             sub_msg = 'An issue occurred...'
@@ -118,7 +118,7 @@ def incoming():
             viber.send_messages(sender_id, [
                 TextMessage(text=sub_msg)])
         elif message in cinema_names:
-            user_cinema_id = db.fetch_cinema_by_name(message, CinemasTable.CINEMA_ID)
+            user_cinema_id = db.fetch_cinema_by_name(message)[CinemasTable.CINEMA_ID]
             db.set_user_cinema(sender_id, user_cinema_id)
             viber.send_messages(sender_id, [
                 TextMessage(text="You have chosen *%s* as your favourite cinema!\n\n%s" % (message, rsp.info))
@@ -126,11 +126,11 @@ def incoming():
         elif message.lower() == 'cinema' or message.lower() == 'cinemas' or sender_sel_cinema_id is None:
             viber.send_messages(sender_id, [
                 TextMessage(text="Please pick your favourite cinema so we can begin",
-                            keyboard=rsp.cinemas_keyboard(cinemas))
+                            keyboard=rsp.cinemas_kb(cinemas))
             ])
         elif message.lower() == 'dates':
             viber.send_messages(sender_id, [
-                TextMessage(text=rsp.dates(), keyboard=rsp.days_keyboard(cinemas[sender_sel_cinema_id]['days']))
+                TextMessage(text=rsp.dates(), keyboard=rsp.dates_kb(sel_cinema_dates))
             ])
         elif message in sel_cinema_dates or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
@@ -144,8 +144,9 @@ def incoming():
             db.set_user_date(sender_id, sel_day)
             log.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
-                reply = rsp.movies(sender_sel_cinema_id, sel_day)
-                kb = rsp.movie_keyboard(cinemas[sender_sel_cinema_id]['today_json'][sel_day])
+                movies_in_cin_for_date = db.fetch_movies_in_cinema_by_date(sender_sel_cinema_id, sel_day)
+                reply = rsp.movies(sender_sel_cinema_id, sel_day, movies_in_cin_for_date)
+                kb = rsp.movie_kb(movies_in_cin_for_date)
             except KeyError as ke:
                 log.error("Error while displaying movies.")
                 reply = "No movie screenings for the selected day: *%s*" % sel_day
@@ -157,13 +158,16 @@ def incoming():
             ])
         elif message in movie_names:  # message here equals the name of the movie
             log.info(
-                "SENDER_ID: '%s' selected movie '%s' for day '%s for cinema %s'" % (
+                "SENDER_ID: '%s' selected movie '%s' for day '%s' for cinema '%s'" % (
                     sender_id, message, sender_sel_date, sender_sel_cinema_id))
-            movie_id = db.fetch_movie_by_name(message, MoviesTable.MOVIE_ID)
-            event_times = db.fetch_event_times(sender_sel_cinema_id, movie_id, sender_sel_date, Events.EVENT_TIMES)
-            screenings = event_times.split(';')
+            senders_movie = db.fetch_movie_by_name(message)
+            movie_id = senders_movie[MoviesTable.MOVIE_ID]
+            event_times = db.fetch_event_times(sender_sel_cinema_id, movie_id, sender_sel_date)
+            screenings = 'PROBLEM'
+            if event_times is not None:
+                screenings = event_times[0].split(';')
             cinema_name = cinemas[sender_sel_cinema_id]['cinema_name']
-            base_movie_url = db.fetch_movie_by_id(movie_id, MoviesTable.LINK)
+            base_movie_url = senders_movie[MoviesTable.LINK]
             resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema_id)
             viber.send_messages(sender_id, [
                 URLMessage(media=resp_url)
