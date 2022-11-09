@@ -182,6 +182,7 @@ for cinema_id, cinema in cinemas.items():
         log.info("'%s' has been added to the database!", cinema_name)
     else:
         db.update_cinema_dates(cinema_id, all_dates)
+        db.update_cinema_broadcasted_today(cinema_id, False)
         log.info("'%s''s dates have been updated in the database!")
 
     movie_set = set()

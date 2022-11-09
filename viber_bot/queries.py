@@ -30,6 +30,7 @@ class CinemasTable:
     MOVIES_YESTERDAY = 4
     DATES = 5
     LAST_UPDATE = 6
+    BROADCASTED_TODAY = 7
 
 
 class Events:
@@ -85,7 +86,8 @@ class DatabaseCommunication:
                 movies_today     TEXT,
                 movies_yesterday TEXT,
                 dates            TEXT,
-                last_update      TEXT
+                last_update      TEXT,
+                broadcasted_today INTEGER DEFAULT FALSE
             );""")
 
     def create_movies_table(self):
@@ -171,13 +173,7 @@ class DatabaseCommunication:
                                 {'movie_id': movie_id, 'movie_name': movie_name, "poster_link": poster_link,
                                  "link": link})
 
-    def fetch_movies(self):
-        with self.conn:
-            rows = self.cursor.execute("""SELECT * FROM movies""").fetchall()
-            headers = self.cursor.description
-        return convert_result_to_dict(rows, headers)
-
-    def fetch_movies_names(self):
+    def fetch_all_movies_names(self):
         with self.conn:
             self.cursor.row_factory = lambda cursor, row: row[0]
             rows = self.cursor.execute("""SELECT movie_name FROM movies""").fetchall()
@@ -196,6 +192,7 @@ class DatabaseCommunication:
                                          {'movie_name': movie_name}).fetchone()
         return result
 
+
     ################################
     #        CINEMAS QUERIES
     ################################
@@ -210,6 +207,11 @@ class DatabaseCommunication:
         with self.conn:
             self.cursor.execute("""UPDATE cinemas SET dates=:dates WHERE cinema_id=:cinema_id""",
                                 {'cinema_id': cinema_id, 'dates': dates})
+
+    def update_cinema_broadcasted_today(self, cinema_id, broadcasted_today):
+        with self.conn:
+            self.cursor.execute("""UPDATE cinemas SET broadcasted_today=:broadcasted_today WHERE cinema_id=:cinema_id""",
+                                {'cinema_id': cinema_id, 'broadcasted_today': broadcasted_today})
 
     def fetch_movies_today(self, cinema_id):
         movie_ids_today = None

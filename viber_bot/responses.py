@@ -1,7 +1,7 @@
-import paths
-from queries import *
-
-db = DatabaseCommunication(paths.DB_PATH)
+# import paths
+# from queries import *
+#
+# db = DatabaseCommunication(paths.DB_PATH)
 
 
 class Responses:
@@ -12,9 +12,8 @@ class Responses:
            '*Cinemas* - to pick your favourite cinema\n' \
            '*Sub/Unsub* - to subscribed/unsubscribe for new movies in cinema updates'
 
-    def movies(self, cinema_id, date,  movies_in_cinema):
+    def movies(self, date,  movies_in_cinema, cinema_name):
         movies = list(movies_in_cinema.keys())
-        cinema_name = db.fetch_cinema_by_id(cinema_id)[CinemasTable.CINEMA_NAME]
 
         movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema_name, date)
         for movie in movies:

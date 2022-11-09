@@ -69,7 +69,7 @@ log.info("--------------------------------------------------------------")
 #     # the above can be fixed with a proper query that filters NULL event_times
 
 
-movie_names = db.fetch_movies_names()
+movie_names = db.fetch_all_movies_names()
 log.info("movie_names has been initialized.")
 cinema_names = set()
 for cinema in cinemas.values():
@@ -97,11 +97,12 @@ def incoming():
         log.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
         db.add_user(sender_id, sender_name, today)
 
-        sender_sel_cinema_id = db.fetch_user(sender_id)[UsersTable.SELECTED_CINEMA_ID]
-        sender_sel_date = db.fetch_user(sender_id)[UsersTable.SELECTED_DATE]
+        user_db = db.fetch_user(sender_id)
+        sender_sel_cinema_id = user_db[UsersTable.SELECTED_CINEMA_ID]
+        sender_sel_date = user_db[UsersTable.SELECTED_DATE]
         sel_cinema_dates = db.fetch_cinema_by_id(sender_sel_cinema_id)[CinemasTable.DATES].split(';')
         if message.lower() == 'sub' or message.lower() == 'unsub':
-            is_subscribed = db.fetch_user(sender_id)[UsersTable.SUBSCRIBED]
+            is_subscribed = user_db[UsersTable.SUBSCRIBED]
             sub_msg = 'An issue occurred...'
             if not is_subscribed and message.lower() == 'sub':
                 db.update_user_subscription_status(sender_id, 1)
@@ -145,7 +146,8 @@ def incoming():
             log.info("SENDER_ID: '%s' has selected a new day: '%s'" % (sender_id, sel_day))
             try:
                 movies_in_cin_for_date = db.fetch_movies_in_cinema_by_date(sender_sel_cinema_id, sel_day)
-                reply = rsp.movies(sender_sel_cinema_id, sel_day, movies_in_cin_for_date)
+                cinema_name = cinemas[sender_sel_cinema_id]['cinema_name']
+                reply = rsp.movies(sel_day, movies_in_cin_for_date, cinema_name)
                 kb = rsp.movie_kb(movies_in_cin_for_date)
             except KeyError as ke:
                 log.error("Error while displaying movies.")
