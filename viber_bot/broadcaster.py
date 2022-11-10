@@ -56,6 +56,8 @@ def broadcast_new_movies(diff_set, broadcast_list, cin_name):
 
 
 cinemas = db.fetch_cinemas()
+pulled_movies = {}
+
 for cinema_id, cinema in cinemas.items():
     cinema_db = db.fetch_cinema_by_id(cinema_id)
     cinema_name = cinema_db[CinemasTable.CINEMA_NAME]
@@ -70,7 +72,14 @@ for cinema_id, cinema in cinemas.items():
         diff_set = m_today_set.difference(m_yesterday_set)
         broadcast_movies = []
         for m_id in diff_set:
-            m_name = db.fetch_movie_by_id(m_id)[MoviesTable.MOVIE_NAME]
+            if m_id not in pulled_movies:
+                log.info("'%s' has NOT been pulled from DB yet - will fetch it now." % m_id)
+                m_name = db.fetch_movie_by_id(m_id)[MoviesTable.MOVIE_NAME]
+                pulled_movies[m_id] = m_name
+            else:
+                log.info("'%s' was ALREADY pulled from DB." % m_id)
+                m_name = pulled_movies[m_id]
+            log.info("Name of '%s' is '%s'" % (m_id, m_name))
             broadcast_movies.append(m_name)
         log.info("Cinema '%s' - movies to broadcast: %s" % (cinema_name, str(broadcast_movies)))
         if broadcast_movies:
