@@ -81,7 +81,7 @@ def pull_cinemas():
                 # add_cinema_date()   # DB
             # update_movies_today()   # DB
             log.info("All date info extracted for cinema: %s", cinema_name)
-            log.info("=================================================")
+            log.info("-------------------------------------------------")
             return_cinemas[cinema_id] = dates_dict
             return_cinemas[cinema_id]['name'] = cinema_name
             return_cinemas[cinema_id]['imageUrl'] = image_url
@@ -142,7 +142,7 @@ def start_api_calls():
     api_end_time = time.time()
     log.info("API calls are DONE! Working time is: %ds", api_end_time - api_start_time)
     return data
-
+log.info("=================================================")
 
 def return_mocked_cinemas():
     mocked_path = paths.MISC_PATH + "mocked_cinemas.json"
@@ -162,9 +162,11 @@ if USE_MOCKED_DATA:
     log.info("Using mocked data from mocked_cinemas.json!")
     cinemas = return_mocked_cinemas()
 else:
-    log.info("Using live data from API calls.")
+    log.info("Using live data from API calls...")
     cinemas = start_api_calls()
+log.info("=================================================")
 
+log.info("Starting DB operations...")
 db_start_time = time.time()
 db = DatabaseCommunication(paths.DB_PATH)
 db.delete_events_table()
@@ -183,7 +185,7 @@ for cinema_id, cinema in cinemas.items():
     else:
         db.update_cinema_dates(cinema_id, all_dates)
         db.update_cinema_broadcasted_today(cinema_id, False)
-        log.info("'%s''s dates have been updated in the database!")
+        log.info("'%s''s dates have been updated in the database!" % cinema_name)
 
     movie_set = set()
     for date_stamp, movies in dates.items():
@@ -215,3 +217,4 @@ for cinema_id, cinema in cinemas.items():
 
 db_end_time = time.time()
 log.info("DB operations are DONE! Working time is: %ds", db_end_time - db_start_time)
+log.info("=================================================")
