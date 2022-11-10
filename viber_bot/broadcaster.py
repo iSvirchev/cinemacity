@@ -35,7 +35,8 @@ def broadcast_new_movies(diff_set, broadcast_list, cin_name):
     failed_list = resp_json['failed_list']
     log.info("Broadcast failed for %d users!", len(failed_list))
     if len(failed_list) == 0:
-        log.info("Successfully broadcasted a message to the following users: %s", str(broadcast_list))
+        log.info("Successfully broadcasted a message to the following users: %s for cinema '%s'" %
+                 (str(broadcast_list), cin_name))
     else:
         for failed_user in failed_list:
             failed_user_id = failed_user['receiver']
@@ -56,11 +57,13 @@ def broadcast_new_movies(diff_set, broadcast_list, cin_name):
 
 
 cinemas = db.fetch_cinemas()
-pulled_movies = {}
+pulled_movies = {}  # To avoid repetitive queries about the same movie - we keep them here
 
 for cinema_id, cinema in cinemas.items():
     cinema_db = db.fetch_cinema_by_id(cinema_id)
     cinema_name = cinema_db[CinemasTable.CINEMA_NAME]
+    log.info("Cinema '%s' - starting a broadcast..." % cinema_name)
+
     movies_today = cinema_db[CinemasTable.MOVIES_TODAY].split(';')
     movies_yesterday = cinema_db[CinemasTable.MOVIES_YESTERDAY].split(';')
     broadcasted_today = cinema_db[CinemasTable.BROADCASTED_TODAY]
@@ -88,7 +91,6 @@ for cinema_id, cinema in cinemas.items():
             # TODO: Sofia has 2 cinemas - if user is subscribed to either one of them - they should be notified for both
             # TODO: use 'groupId' from API
             if users_to_broadcast:  # Only broadcast to the subscribed users (if any)
-                log.info("Cinema '%s' - starting a broadcast..." % cinema_name)
                 broadcast_new_movies(broadcast_movies, users_to_broadcast, cinema_name)
             else:
                 log.info("Cinema '%s' - no users subscribed to that cinema." % cinema_name)

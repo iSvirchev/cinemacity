@@ -62,11 +62,6 @@ def remove_empty_elements(d):  # recursively remove empty lists, empty dicts, or
 
 
 log.info("--------------------------------------------------------------")
-# for cinema_id, cinema in cinemas.items():
-#     log.info("Processing data for cinema_id %s with name %s" % (cinema_id, cinema['cinema_name']))
-#
-#     today_json = remove_empty_elements(today_json)  # removes movies and days with no showings - (pre-sales)
-#     # the above can be fixed with a proper query that filters NULL event_times
 
 
 movie_names = db.fetch_all_movies_names()
