@@ -73,7 +73,7 @@ def incoming():
         sender_id = viber_request.sender.id
 
         message = viber_request.message.text
-        log.info("MSG received: '%s' from SENDER_ID: '%s'" % (message, sender_id))
+        log.info("MSG received: '%s' from SENDER_ID: '%s' SENDER_NAME: '%s'" % (message, sender_id, sender_name))
         db.add_user(sender_id, sender_name, today)
 
         user_db = db.fetch_user(sender_id)
@@ -85,33 +85,23 @@ def incoming():
             sub_msg = 'An issue occurred...'
             if not is_subscribed and message.lower() == 'sub':
                 db.update_user_subscription_status(sender_id, 1)
-                sub_msg = 'You are now *SUBSCRIBED* to our cinema updates.\nType "*unsub*" if you wish to unsubscribe.'
+                sub_msg = rsp.sub_unsubbed
             elif not is_subscribed and message.lower() == 'unsub':
-                sub_msg = 'You cannot unsubscribe because you are currently not subscribed.' \
-                          '\nType "*sub*" to subscribe to our updates!'
+                sub_msg = rsp.unsub_unsubbed
             if is_subscribed and message.lower() == 'sub':
-                sub_msg = 'You are already subscribed.\nType "*unsub*" if you wish to unsubscribe'
+                sub_msg = rsp.sub_subbed
             if is_subscribed and message.lower() == 'unsub':
                 db.update_user_subscription_status(sender_id, 0)
-                sub_msg = 'You are now *UNSUBSCRIBED* from our cinema updates.' \
-                          '\nType "*sub*" if you wish to subscribe again'
-            viber.send_messages(sender_id, [
-                TextMessage(text=sub_msg)])
+                sub_msg = rsp.unsub_subbed
+            viber.send_messages(sender_id, [TextMessage(text=sub_msg)])
         elif message in cinema_names:
             user_cinema_id = db.fetch_cinema_by_name(message)[CinemasTable.CINEMA_ID]
             db.set_user_cinema(sender_id, user_cinema_id)
-            viber.send_messages(sender_id, [
-                TextMessage(text="You have chosen *%s* as your favourite cinema!\n\n%s" % (message, rsp.info))
-            ])
+            viber.send_messages(sender_id, [TextMessage(text=rsp.cinema(message))])
         elif message.lower() == 'cinema' or message.lower() == 'cinemas' or sender_sel_cinema_id is None:
-            viber.send_messages(sender_id, [
-                TextMessage(text="Please pick your favourite cinema so we can begin",
-                            keyboard=rsp.cinemas_kb(cinemas))
-            ])
+            viber.send_messages(sender_id, [TextMessage(text=rsp.pick_cinema, keyboard=rsp.cinemas_kb(cinemas))])
         elif message.lower() == 'dates':
-            viber.send_messages(sender_id, [
-                TextMessage(text=rsp.dates(), keyboard=rsp.dates_kb(sel_cinema_dates))
-            ])
+            viber.send_messages(sender_id, [TextMessage(text=rsp.dates(), keyboard=rsp.dates_kb(sel_cinema_dates))])
         elif message in sel_cinema_dates or message.lower() == 'today' or message.lower() == 'tomorrow':
             # message here equals the date or today or tomorrow
             if message.lower() == 'today':
@@ -133,51 +123,36 @@ def incoming():
                 reply = "No movie screenings for the selected day: *%s*" % sel_day
                 kb = None
                 log.info(reply)
-
-            viber.send_messages(sender_id, [
-                TextMessage(text=reply, keyboard=kb)
-            ])
+            viber.send_messages(sender_id, [TextMessage(text=reply, keyboard=kb)])
         elif message in movie_names:  # message here equals the name of the movie
-            log.info(
-                "SENDER_ID: '%s' selected movie '%s' for day '%s' for cinema '%s'" % (
-                    sender_id, message, sender_sel_date, sender_sel_cinema_id))
+            log.info("SENDER_ID: '%s' selected movie '%s' for day '%s' for cinema '%s'" %
+                     (sender_id, message, sender_sel_date, sender_sel_cinema_id))
             senders_movie = db.fetch_movie_by_name(message)
             movie_id = senders_movie[MoviesTable.MOVIE_ID]
             event_times = db.fetch_event_times(sender_sel_cinema_id, movie_id, sender_sel_date)
-            screenings = 'PROBLEM'
+            screenings = ''
             if event_times is not None:
                 screenings = event_times[0].split(';')
             cinema_name = cinemas[sender_sel_cinema_id]['cinema_name']
             base_movie_url = senders_movie[MoviesTable.LINK]
-            resp_url = "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, sender_sel_cinema_id)
-            viber.send_messages(sender_id, [
-                URLMessage(media=resp_url)
-            ])
-            r = 'Screenings of movie *%s* on *%s* in *%s*\n\n' % (message, sender_sel_date, cinema_name)
-            r = r + '\n'.join(screenings)
-            viber.send_messages(sender_id, [
-                TextMessage(text=r)
-            ])
+            resp_url = rsp.resp_url(base_movie_url, sender_sel_cinema_id)
+            # We send two messages here - First one is an URLMessage to the movie in the selected cinema
+            viber.send_messages(sender_id, [URLMessage(media=resp_url)])
+            # The second message is a TextMessage containing the screenings of the movie for the selected date
+            viber.send_messages(sender_id,
+                                [TextMessage(text=rsp.screenings(message, sender_sel_date, cinema_name, screenings))])
         else:
-            viber.send_messages(sender_id, [
-                TextMessage(text=rsp.info)
-            ])
+            viber.send_messages(sender_id, [TextMessage(text=rsp.info)])
     elif isinstance(viber_request, ViberSubscribedRequest):
         subs_msg = 'SUBSCRIBED' if db.fetch_user(viber_request.user.id)[
             UsersTable.SUBSCRIBED] else 'NOT SUBSCRIBED'
-        viber.send_messages(viber_request.user.id, [
-            TextMessage(text='Hello *%s!* Thanks you for using this bot!\n\n'
-                             'Type *INFO* for available commands.\n'
-                             'You are currently *%s* to our new movies newsletter.' % (
-                                 viber_request.user.name, subs_msg))
-        ])
+        user_id = viber_request.user.id
+        log.info("User '%s' has now %s to the bot and to the newsletter" % (user_id, subs_msg))
+        viber.send_messages(user_id, [TextMessage(text=rsp.new_user(viber_request.user.name, subs_msg))])
     elif isinstance(viber_request, ViberConversationStartedRequest):
-        reply = 'Welcome %s!\n\n%s' % (viber_request.user.name, rsp.info)
-        viber.send_messages(viber_request.user.id, [
-            TextMessage(text=reply)
-        ])
+        viber.send_messages(viber_request.user.id, [TextMessage(text=rsp.conv_started(viber_request.user.name))])
     elif isinstance(viber_request, ViberFailedRequest):
-        print("Failed!")
+        log.error("Viber Request has failed")
 
     return Response(status=200)
 

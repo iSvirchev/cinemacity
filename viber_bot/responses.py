@@ -1,9 +1,3 @@
-# import paths
-# from queries import *
-#
-# db = DatabaseCommunication(paths.DB_PATH)
-
-
 class Responses:
     info = 'Please type one of the following commands:\n\n' \
            '*Today* - will display today\'s movies on screen\n' \
@@ -12,7 +6,38 @@ class Responses:
            '*Cinemas* - to pick your favourite cinema\n' \
            '*Sub/Unsub* - to subscribed/unsubscribe for new movies in cinema updates'
 
-    def movies(self, date,  movies_in_cinema, cinema_name):
+    sub_unsubbed = 'You are now *SUBSCRIBED* to our cinema updates.\nType "*unsub*" if you wish to unsubscribe.'
+    sub_subbed = 'You are already subscribed.\nType "*unsub*" if you wish to unsubscribe'
+    unsub_unsubbed = 'You cannot unsubscribe because you are currently not subscribed.' \
+                     '\nType "*sub*" to subscribe to our updates!'
+    unsub_subbed = 'You are now *UNSUBSCRIBED* from our cinema updates.' \
+                   '\nType "*sub*" if you wish to subscribe again'
+    pick_cinema = "Please pick your favourite cinema so we can begin:"
+
+    def conv_started(self, user_name):
+        return 'Welcome %s!\n\n%s' % (user_name, self.info)
+
+    @staticmethod
+    def new_user(user_name, subs_msg):
+        return 'Hello *%s!* Thanks you for using this bot!\n\n Type *INFO* for available commands.\n' \
+               'You are currently *%s* to our new movies newsletter.' % (user_name, subs_msg)
+
+    @staticmethod
+    def screenings(movie_name, date, cinema_name, screenings):
+        resp = 'Screenings of movie *%s* on *%s* in *%s*\n\n' % (movie_name, date, cinema_name)
+        resp = resp + '\n'.join(screenings)
+        return resp
+
+    @staticmethod
+    def resp_url(base_movie_url, cinema_id):
+        return "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, cinema_id)
+
+    @staticmethod
+    def cinema(cinema_name):
+        return "You have chosen *%s* as your favourite cinema!" % cinema_name
+
+    @staticmethod
+    def movies(date, movies_in_cinema, cinema_name):
         movies = list(movies_in_cinema.keys())
 
         movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema_name, date)
@@ -21,7 +46,8 @@ class Responses:
 
         return movies_resp
 
-    def dates_kb(self, dates):
+    @staticmethod
+    def dates_kb(dates):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
@@ -52,7 +78,8 @@ class Responses:
 
         return keyboard
 
-    def movie_kb(self, movies_on_sel_date):
+    @staticmethod
+    def movie_kb(movies_on_sel_date):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
@@ -82,13 +109,15 @@ class Responses:
 
         return keyboard
 
-    def dates(self):
+    @staticmethod
+    def dates():
         dates_resp = 'Which day are you interested in?\n'
         # for day_resp in self.days_dictionary:
         #     dates_resp = dates_resp + '\n' + day_resp
         return dates_resp
 
-    def cinemas_kb(self, cinemas):
+    @staticmethod
+    def cinemas_kb(cinemas):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
