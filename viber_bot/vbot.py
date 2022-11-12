@@ -73,13 +73,15 @@ def incoming():
         sender_id = viber_request.sender.id
 
         message = viber_request.message.text
-        log.info("MSG received: '%s' from SENDER_ID: '%s' SENDER_NAME: '%s'" % (message, sender_id, sender_name))
+        log.info("MSG received: '%s' from SENDER_ID: '%s' | SENDER_NAME: '%s'" % (message, sender_id, sender_name))
         db.add_user(sender_id, sender_name, today)
 
         user_db = db.fetch_user(sender_id)
         sender_sel_cinema_id = user_db[UsersTable.SELECTED_CINEMA_ID]
         sender_sel_date = user_db[UsersTable.SELECTED_DATE]
-        sel_cinema_dates = db.fetch_cinema_by_id(sender_sel_cinema_id)[CinemasTable.DATES].split(';')
+        # Pulling cinema data from cinemas object speeds up the bot, however a restart is required everyday
+        sel_cinema_dates = cinemas[sender_sel_cinema_id]['dates'].split(';')
+
         if message.lower() == 'sub' or message.lower() == 'unsub':
             is_subscribed = user_db[UsersTable.SUBSCRIBED]
             sub_msg = 'An issue occurred...'
