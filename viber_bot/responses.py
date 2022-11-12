@@ -29,8 +29,9 @@ class Responses:
         return resp
 
     @staticmethod
-    def resp_url(base_movie_url, cinema_id):
-        return "%s#/buy-tickets-by-film?in-cinema=%s" % (base_movie_url, cinema_id)
+    def resp_url(base_movie_url, cinema_id, date, movie_id):
+        return "%s#/buy-tickets-by-film?in-cinema=%s&at=%s&for-movie=%s&view-mode=list" \
+               % (base_movie_url, cinema_id, date, movie_id)
 
     @staticmethod
     def cinema(cinema_name):

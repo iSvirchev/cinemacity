@@ -136,7 +136,9 @@ def incoming():
                 screenings = event_times[0].split(';')
             cinema_name = cinemas[sender_sel_cinema_id]['cinema_name']
             base_movie_url = senders_movie[MoviesTable.LINK]
-            resp_url = rsp.resp_url(base_movie_url, sender_sel_cinema_id)
+            sel_date_w_year = sender_sel_date + ' ' + datetime_now.strftime('%Y')
+            url_date = datetime.datetime.strptime(sel_date_w_year, '%d %b %Y').strftime('%Y-%m-%d')
+            resp_url = rsp.resp_url(base_movie_url, sender_sel_cinema_id, url_date, movie_id)
             # We send two messages here - First one is an URLMessage to the movie in the selected cinema
             viber.send_messages(sender_id, [URLMessage(media=resp_url)])
             # The second message is a TextMessage containing the screenings of the movie for the selected date
