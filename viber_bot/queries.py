@@ -144,6 +144,7 @@ class DatabaseCommunication:
                                          {'user_id': user_id}).fetchone()
         return result
 
+    # noinspection SqlWithoutWhere
     def set_today_4_all_users(self, selected_date):
         with self.conn:
             self.cursor.execute("UPDATE users SET selected_date=:selected_date", {'selected_date': selected_date})
@@ -192,7 +193,6 @@ class DatabaseCommunication:
                                          {'movie_name': movie_name}).fetchone()
         return result
 
-
     ################################
     #        CINEMAS QUERIES
     ################################
@@ -210,11 +210,11 @@ class DatabaseCommunication:
 
     def update_cinema_broadcasted_today(self, cinema_id, broadcasted_today):
         with self.conn:
-            self.cursor.execute("""UPDATE cinemas SET broadcasted_today=:broadcasted_today WHERE cinema_id=:cinema_id""",
-                                {'cinema_id': cinema_id, 'broadcasted_today': broadcasted_today})
+            self.cursor.execute(
+                """UPDATE cinemas SET broadcasted_today=:broadcasted_today WHERE cinema_id=:cinema_id""",
+                {'cinema_id': cinema_id, 'broadcasted_today': broadcasted_today})
 
     def fetch_movies_today(self, cinema_id):
-        movie_ids_today = None
         with self.conn:
             self.cursor.execute("""SELECT movies_today FROM cinemas WHERE cinema_id=:cinema_id""",
                                 {'cinema_id': cinema_id})
@@ -228,11 +228,10 @@ class DatabaseCommunication:
                                 {'movies_today': movie_ids, 'cinema_id': cinema_id, 'last_update': today})
 
     def fetch_movies_yesterday(self, cinema_id):
-        movie_ids_yesterday = None
         with self.conn:
             self.cursor.execute("""SELECT movies_yesterday FROM cinemas WHERE cinema_id=:cinema_id""",
                                 {'cinema_id': cinema_id})
-            movie_ids_yesterday = self.c.fetchone()[0]
+            movie_ids_yesterday = self.cursor.fetchone()[0]
         return movie_ids_yesterday
 
     def update_movies_yesterday(self, cinema_id):

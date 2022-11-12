@@ -42,7 +42,7 @@ class Responses:
 
         movies_resp = 'Movies currently in *%s* for date *%s*:\n' % (cinema_name, date)
         for movie in movies:
-            movies_resp + '\n' + movie
+            movies_resp = movies_resp + '\n' + movie
 
         return movies_resp
 

@@ -1,6 +1,4 @@
 import datetime
-import json
-import paths
 import logger
 
 from time import strftime
@@ -125,6 +123,7 @@ def incoming():
                 reply = "No movie screenings for the selected day: *%s*" % sel_day
                 kb = None
                 log.info(reply)
+                log.error(ke)
             viber.send_messages(sender_id, [TextMessage(text=reply, keyboard=kb)])
         elif message in movie_names:  # message here equals the name of the movie
             log.info("SENDER_ID: '%s' selected movie '%s' for day '%s' for cinema '%s'" %

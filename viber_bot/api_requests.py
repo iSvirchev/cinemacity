@@ -40,83 +40,83 @@ def initialize_cinemas():
 def pull_cinemas():
     log.info("Will start requesting the available dates for each cinema...")
     return_cinemas = {}
-    for cinema in cinemas:
-        cinema_id = cinema['id']
-        cinema_name = cinema['displayName']
-        image_url = cinema['imageUrl']
+    for cin in cinemas:
+        cin_id = cin['id']
+        cin_name = cin['displayName']
+        img_url = cin['imageUrl']
 
         # delete_cinema_dates_for_cinema_id()   # DB
         # add_cinema()   # DB
-        url = '%s/quickbook/10106/dates/in-cinema/%s/until/%s?attr=&lang=en_GB' % (API_URL, cinema_id, next_year_date)
+        url = '%s/quickbook/10106/dates/in-cinema/%s/until/%s?attr=&lang=en_GB' % (API_URL, cin_id, next_year_date)
         rsp = requests.get(url)
         log.info("Response is %s for URL '%s'." % (rsp.status_code, url))
 
         if rsp.status_code == 200:
             data = json.loads(rsp.text)
             timestamps = data['body']['dates']
-            log.info("Timestamps for %s - '%s' are:" % (cinema_id, cinema_name))
+            log.info("Timestamps for %s - '%s' are:" % (cin_id, cin_name))
             log.info(str(timestamps))
             # The response will sometimes return the dates scrambled
             # we take the timestamp strings and convert them to datetime objects
-            dates = [datetime.datetime.strptime(timestamp, "%Y-%m-%d") for timestamp in timestamps]
+            dates_timestamps = [datetime.datetime.strptime(timestamp, "%Y-%m-%d") for timestamp in timestamps]
             # then we sort the datetime objects via list.sort()
-            dates.sort()
+            dates_timestamps.sort()
             # we convert the datetime objects back to strings
-            sorted_dates = [datetime.datetime.strftime(date, "%Y-%m-%d") for date in dates]
+            sorted_dates = [datetime.datetime.strftime(date, "%Y-%m-%d") for date in dates_timestamps]
             log.info("The dates have been sorted! Sorted timestamps:")
             log.info(str(sorted_dates))
 
-            log.info("Will start extracting dates info for cinema: '%s'", cinema_name)
+            log.info("Will start extracting dates info for cinema: '%s'", cin_name)
             dates_dict = {'dates': {}}
-            movie_set = set()
+            movies_set = set()
             for date in sorted_dates:
-                all_movies_for_cinema = pull_movies_for_date(cinema['id'], date)
-                log.debug("All the movies in cinema '%s' have been extracted.", cinema_name)
+                all_movies_for_cinema = pull_movies_for_date(cin['id'], date)
+                log.debug("All the movies in cinema '%s' have been extracted.", cin_name)
                 all_movies_for_cinema_as_list = list(all_movies_for_cinema)
-                for m in all_movies_for_cinema_as_list:
-                    movie_set.add(m)
-                log.debug("All the movies in cinema '%s' have been added to the cinema's movie_set.", cinema_name)
+                for mov in all_movies_for_cinema_as_list:
+                    movies_set.add(mov)
+                log.debug("All the movies in cinema '%s' have been added to the cinema's movie_set.", cin_name)
                 formatted_date = datetime.datetime.strptime(date, '%Y-%m-%d').strftime('%d %b')
                 dates_dict['dates'][formatted_date] = all_movies_for_cinema
                 # add_cinema_date()   # DB
             # update_movies_today()   # DB
-            log.info("All date info extracted for cinema: %s", cinema_name)
+            log.info("All date info extracted for cinema: %s", cin_name)
             log.info("-------------------------------------------------")
-            return_cinemas[cinema_id] = dates_dict
-            return_cinemas[cinema_id]['name'] = cinema_name
-            return_cinemas[cinema_id]['imageUrl'] = image_url
+            return_cinemas[cin_id] = dates_dict
+            return_cinemas[cin_id]['name'] = cin_name
+            return_cinemas[cin_id]['imageUrl'] = img_url
         else:
             log.error("The request was not processed properly.")
     return return_cinemas
 
 
-def pull_movies_for_date(cinema_id, date):
+def pull_movies_for_date(cin_id, date):
     url = '%s/quickbook/10106/film-events/in-cinema/%s/at-date/%s?attr=&lang=en_GB' % (
-        API_URL, cinema_id, date)
+        API_URL, cin_id, date)
     rsp = requests.get(url)
     log.info("Response is %s for URL '%s'." % (rsp.status_code, url))
 
     if rsp.status_code == 200:
         data = json.loads(rsp.text)
-        movies = data['body']['films']
+        movies_from_data = data['body']['films']
         showings = data['body']['events']
         return_movies = {}
         all_events = {}
 
-        log.debug("Will start extracting the movies for cinema '%s' for date '%s'", cinema_id, date)
-        for movie in movies:
-            movie_id = movie['id']
-            movie_name = movie['name']
-            poster_link = movie['posterLink'].replace('md', 'sm')
-            link = movie['link']
+        log.debug("Will start extracting the movies for cinema '%s' for date '%s'", cin_id, date)
+        for mov in movies_from_data:
+            mov_id = mov['id']
+            mov_name = mov['name']
+            p_link = mov['posterLink'].replace('md', 'sm')
+            m_link = mov['link']
             # trailer_link = movie['videoLink']   # might need later - currently not used
 
             # add_movie()   # DB
-            movie_obj = {'movie_name': movie_name, 'poster_link': poster_link, 'movie_link': link}
-            return_movies[movie_id] = movie_obj
-            all_events[movie_id] = {'movie_screenings': []}
+            movie_obj = {'movie_name': mov_name, 'poster_link': p_link, 'movie_link': m_link}
+            return_movies[mov_id] = movie_obj
+            all_events[mov_id] = {'movie_screenings': []}
         log.debug("Movies extracted!")
-        log.debug("Will start extracting the movie_screenings for cinema '%s' for date '%s'", cinema_id, date)
+        log.debug("Will start extracting the movie_screenings for cinema '%s' for date '%s'", cin_id, date)
         for event in showings:
             film_id = event['filmId']
             # booking_link = event['bookingLink']   # might need later - currently not used
@@ -142,7 +142,10 @@ def start_api_calls():
     api_end_time = time.time()
     log.info("API calls are DONE! Working time is: %ds", api_end_time - api_start_time)
     return data
+
+
 log.info("=================================================")
+
 
 def return_mocked_cinemas():
     mocked_path = paths.MISC_PATH + "mocked_cinemas.json"
@@ -210,7 +213,7 @@ for cinema_id, cinema in cinemas.items():
     elif last_update == today:  # we update only today's info
         log.info("Last update day is today will update cinemas.movies_today only")
         db.update_movies_today(movie_ids, cinema_id, today)
-    else:  # we update movies_yesterday with movies_today and then we update movies_today
+    else:  # we update movies_yesterday with movies_today then we update movies_today
         log.info("Last update day is NOT today will update cinemas.movies_yesterday then cinemas.movies_today")
         db.update_movies_yesterday(cinema_id)
         db.update_movies_today(movie_ids, cinema_id, today)

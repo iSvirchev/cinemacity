@@ -18,9 +18,9 @@ with open(paths.TOKEN_FILE_PATH, 'r') as f:
 log.info("bot_token extracted")
 
 
-def broadcast_new_movies(diff_set, broadcast_list, cin_name):
+def broadcast_new_movies(broadcast_set, broadcast_list, cin_name):
     broadcast_msg = "(video) ```New movies in ```*%s*``` this week!``` (video)\n\n" % cin_name
-    for new_movie in diff_set:
+    for new_movie in broadcast_set:
         broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
 
     broadcast_data = {
