@@ -31,6 +31,8 @@ class CinemasTable:
     DATES = 5
     LAST_UPDATE = 6
     BROADCASTED_TODAY = 7
+    MOVIES_TO_BROADCAST = 8
+    GROUP_ID = 9
 
 
 class Events:
@@ -87,7 +89,9 @@ class DatabaseCommunication:
                 movies_yesterday TEXT,
                 dates            TEXT,
                 last_update      TEXT,
-                broadcasted_today INTEGER DEFAULT FALSE
+                broadcasted_today INTEGER DEFAULT FALSE,
+                movies_to_broadcast TEXT DEFAULT NULL,
+                group_id         TEXT
             );""")
 
     def create_movies_table(self):
@@ -196,12 +200,12 @@ class DatabaseCommunication:
     ################################
     #        CINEMAS QUERIES
     ################################
-    def add_cinema(self, cinema_id, cinema_name, image_url, dates):
+    def add_cinema(self, cinema_id, cinema_name, image_url, dates, group_id):
         with self.conn:
-            self.cursor.execute("""INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, image_url, dates)
-                        VALUES (:cinema_id, :cinema_name, :image_url, :dates)""",
+            self.cursor.execute("""INSERT OR IGNORE INTO cinemas(cinema_id, cinema_name, image_url, dates, group_id)
+                        VALUES (:cinema_id, :cinema_name, :image_url, :dates, :group_id)""",
                                 {'cinema_id': cinema_id, 'cinema_name': cinema_name, 'image_url': image_url,
-                                 'dates': dates})
+                                 'dates': dates, 'group_id': group_id})
 
     def update_cinema_dates(self, cinema_id, dates):
         with self.conn:
@@ -253,6 +257,12 @@ class DatabaseCommunication:
             headers = self.cursor.description
         return convert_result_to_dict(rows, headers)
 
+    def update_movies_to_broadcast(self, cinema_id, m2b):
+        with self.conn:
+            self.cursor.execute(
+                """UPDATE cinemas SET movies_to_broadcast=:movies_to_broadcast WHERE cinema_id=:cinema_id""",
+                {'cinema_id': cinema_id, 'movies_to_broadcast': m2b})
+
     # def fetch_cinema_names(self):
     #     with self.conn:
     #         self.cursor.row_factory = lambda cursor, row: row[0]
@@ -271,6 +281,13 @@ class DatabaseCommunication:
             result = self.cursor.execute("""SELECT * FROM cinemas WHERE cinema_id=:cinema_id""",
                                          {'cinema_id': cinema_id}).fetchone()
         return result
+
+    def fetch_cinemas_by_groupId_not_broadcasted(self, group_id):
+        with self.conn:
+            rows = self.cursor.execute("""SELECT * FROM cinemas WHERE group_id=:group_id 
+            AND broadcasted_today==FALSE""", {'group_id': group_id}).fetchall()
+            headers = self.cursor.description
+        return convert_result_to_dict(rows, headers)
 
     ################################
     #        EVENTS QUERIES

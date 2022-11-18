@@ -44,6 +44,7 @@ def pull_cinemas():
         cin_id = cin['id']
         cin_name = cin['displayName']
         img_url = cin['imageUrl']
+        groupId = cin['groupId']
 
         # delete_cinema_dates_for_cinema_id()   # DB
         # add_cinema()   # DB
@@ -85,6 +86,7 @@ def pull_cinemas():
             return_cinemas[cin_id] = dates_dict
             return_cinemas[cin_id]['name'] = cin_name
             return_cinemas[cin_id]['imageUrl'] = img_url
+            return_cinemas[cin_id]['groupId'] = groupId
         else:
             log.error("The request was not processed properly.")
     return return_cinemas
@@ -175,15 +177,18 @@ db = DatabaseCommunication(paths.DB_PATH)
 db.delete_events_table()
 db.create_events_table()
 
+pulled_movies = {}  # To avoid repetitive queries about the same movie - we keep them here
+
 for cinema_id, cinema in cinemas.items():
     cinema_name = cinema['name']
     image_url = cinema['imageUrl']
     dates = cinema['dates']
+    group_id = cinema['groupId']
     all_dates = ';'.join(dates)
 
     db_cinema = db.fetch_cinema_by_id(cinema_id)
     if db_cinema is None:
-        db.add_cinema(cinema_id, cinema_name, image_url, all_dates)  # CHECK THIS - we need to update dates
+        db.add_cinema(cinema_id, cinema_name, image_url, all_dates, group_id)
         log.info("'%s' has been added to the database!", cinema_name)
     else:
         db.update_cinema_dates(cinema_id, all_dates)
@@ -217,6 +222,26 @@ for cinema_id, cinema in cinemas.items():
         log.info("Last update day is NOT today will update cinemas.movies_yesterday then cinemas.movies_today")
         db.update_movies_yesterday(cinema_id)
         db.update_movies_today(movie_ids, cinema_id, today)
+
+    broadcast_cinema = db.fetch_cinema_by_id(cinema_id)
+    movies_today = broadcast_cinema[CinemasTable.MOVIES_TODAY].split(';')
+    movies_yesterday = broadcast_cinema[CinemasTable.MOVIES_YESTERDAY].split(';')
+
+    m_today_set = set(movies_today)
+    m_yesterday_set = set(movies_yesterday)
+    diff_set = m_today_set.difference(m_yesterday_set)
+    broadcast_movies = []
+    for m_id in diff_set:
+        if m_id not in pulled_movies:
+            log.info("'%s' has NOT been pulled from DB yet - will fetch it now." % m_id)
+            m_name = db.fetch_movie_by_id(m_id)[MoviesTable.MOVIE_NAME]
+            pulled_movies[m_id] = m_name
+        else:
+            log.info("'%s' was ALREADY pulled from DB." % m_id)
+            m_name = pulled_movies[m_id]
+        log.info("Name of '%s' is '%s'" % (m_id, m_name))
+        broadcast_movies.append(m_name)
+    db.update_movies_to_broadcast(cinema_id, ';'.join(broadcast_movies))
 
 db_end_time = time.time()
 log.info("DB operations are DONE! Working time is: %ds", db_end_time - db_start_time)
