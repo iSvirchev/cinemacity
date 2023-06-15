@@ -60,7 +60,7 @@ log.info("=================================================")
 @app.route('/', methods=['POST', 'GET'])
 def incoming():
     if request.method == 'GET':
-        log.info("The method is GET")
+        log.debug("The method is GET")
         return Response(render_template('index.html'))
     request_data = request.get_data()
     log.debug("Received request! Post data: {0}".format(request_data))
