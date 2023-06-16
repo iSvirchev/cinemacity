@@ -57,7 +57,7 @@ log.info("              Viber Bot Started!                 ")
 log.info("=================================================")
 
 
-@app.route('/', methods=['POST', 'GET'])
+@app.route('/vbot', methods=['POST', 'GET'])
 def incoming():
     if request.method == 'GET':
         log.debug("The method is GET")
