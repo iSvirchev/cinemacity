@@ -15,7 +15,7 @@ class Responses:
     pick_cinema = "Please pick your favourite cinema so we can begin:"
 
     def conv_started(self, user_name):
-        return 'Welcome %s!\n\n%s' % (user_name, self.info)
+        return 'Welcome %s!\n\n%s' % (user_name, self.pick_cinema)
 
     @staticmethod
     def new_user(user_name, subs_msg):

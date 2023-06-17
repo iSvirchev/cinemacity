@@ -79,10 +79,11 @@ def incoming():
         db.add_user(sender_id, sender_name, today)
 
         user_db = db.fetch_user(sender_id)
-        sender_sel_cinema_id = user_db[UsersTable.SELECTED_CINEMA_ID]
         sender_sel_date = user_db[UsersTable.SELECTED_DATE]
+        sender_sel_cinema_id = user_db[UsersTable.SELECTED_CINEMA_ID]
         # Pulling cinema data from cinemas object speeds up the bot, however a restart is required everyday
-        sel_cinema_dates = cinemas[sender_sel_cinema_id]['dates'].split(';')
+        if sender_sel_cinema_id is not None:
+            sel_cinema_dates = cinemas[sender_sel_cinema_id]['dates'].split(';')
 
         if message.lower() == 'sub' or message.lower() == 'unsub':
             is_subscribed = user_db[UsersTable.SUBSCRIBED]
@@ -157,7 +158,8 @@ def incoming():
         log.info("User '%s' has now %s to the bot and to the newsletter" % (user_id, subs_msg))
         viber.send_messages(user_id, [TextMessage(text=rsp.new_user(viber_request.user.name, subs_msg))])
     elif isinstance(viber_request, ViberConversationStartedRequest):
-        viber.send_messages(viber_request.user.id, [TextMessage(text=rsp.conv_started(viber_request.user.name))])
+        viber.send_messages(viber_request.user.id, [TextMessage(text=rsp.conv_started(viber_request.user.name),
+                                                                keyboard=rsp.cinemas_kb(cinemas))])
     elif isinstance(viber_request, ViberFailedRequest):
         log.error("Viber Request has failed")
 
