@@ -2,14 +2,14 @@ import datetime
 import logger
 
 from time import strftime
-from queries import *
+from queries import DatabaseCommunication, UsersTable, CinemasTable, MoviesTable
 from responses import Responses
 import paths
 
-from flask import Flask, request, Response
+from flask import Flask, request, Response, render_template
 from viberbot import Api
 from viberbot.api.bot_configuration import BotConfiguration
-from viberbot.api.messages import *
+from viberbot.api.messages import TextMessage, URLMessage
 from viberbot.api.viber_requests import ViberConversationStartedRequest, ViberFailedRequest, ViberMessageRequest, \
     ViberSubscribedRequest
 
@@ -57,14 +57,18 @@ log.info("              Viber Bot Started!                 ")
 log.info("=================================================")
 
 
-@app.route('/', methods=['POST'])
+@app.route('/vbot', methods=['POST', 'GET'])
 def incoming():
-    log.debug("Received request! Post data: {0}".format(request.get_data()))
+    if request.method == 'GET':
+        log.debug("The method is GET")
+        return Response(render_template('index.html'))
+    request_data = request.get_data()
+    log.debug("Received request! Post data: {0}".format(request_data))
     # every viber message is signed, you can verify the signature using this method
-    if not viber.verify_signature(request.get_data(), request.headers.get('X-Viber-Content-Signature')):
+    if not viber.verify_signature(request_data, request.headers.get('X-Viber-Content-Signature')):
         return Response(status=403)
 
-    viber_request = viber.parse_request(request.get_data())
+    viber_request = viber.parse_request(request_data)
 
     if isinstance(viber_request, ViberMessageRequest):
         sender_name = viber_request.sender.name
