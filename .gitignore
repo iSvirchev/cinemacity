@@ -4,6 +4,8 @@ cinemacity_crawlers/movies_yesterday.json
 viber_bot/misc
 viber_bot/logs
 vbot.db
+vbot.db-shm
+vbot.db-wal
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

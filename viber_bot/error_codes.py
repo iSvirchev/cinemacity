@@ -12,7 +12,8 @@ class ErrorCodes:  # Descriptions - https://developers.viber.com/docs/api/rest-b
     WEBHOOK_NOT_SET = 10  # No webhook was set for the account
     RECEIVER_NO_SUITABLE_DEVICE = 11  # The receiver is using a device or a Viber version that don’t support accounts
     TOO_MANY_REQUESTS = 12  # Rate control breach
-    API_VERSION_NOT_SUPPORTED = 13  # Maximum supported account version by all user’s devices is less than the minApiVersion in the message
+    API_VERSION_NOT_SUPPORTED = 13  # Maximum supported account version by all user’s devices is less than the
+    # minApiVersion in the message
     INCOMPATIBLE_WITH_VERSION = 14  # minApiVersion is not compatible to the message fields
     PUBLIC_ACCOUNT_NOT_AUTHORIZED = 15  # The account is not authorized
     INCHAT_REPLY_MESSAGE_NOT_ALLOWED = 16  # Inline message not allowed
@@ -22,5 +23,7 @@ class ErrorCodes:  # Descriptions - https://developers.viber.com/docs/api/rest-b
     BROADCAST_NOT_ALLOWED = 20  # Attempt to send broadcast message from the bot
     UNSUPPORTED_COUNTRY = 21  # The message sent is not supported in the destination country
     PAYMENT_UNSUPPORTED = 22  # The bot does not support payment messages
-    FREE_MESSAGES_EXCEEDED = 23  # The non-billable bot has reached the monthly threshold of free out of session messages
-    NO_BALANCE = 24  # No balance for a billable bot (when the “free out of session messages” threshold has been reached)
+    FREE_MESSAGES_EXCEEDED = 23  # The non-billable bot has reached the monthly threshold of free out of session
+    # messages
+    NO_BALANCE = 24  # No balance for a billable bot (when the “free out of session messages” threshold has been
+    # reached)

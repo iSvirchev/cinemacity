@@ -8,18 +8,19 @@ from error_codes import ErrorCodes
 from queries import *
 
 log = logger.get_logger()
-
+log.info("=================================================")
+log.info("             Starting Broadcaster...             ")
+log.info("=================================================")
 db = DatabaseCommunication(paths.DB_PATH)
 
-with open(paths.CONFIG_PATH, 'r') as f:
+with open(paths.TOKEN_FILE_PATH, 'r') as f:
     bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
 log.info("bot_token extracted")
 
 
-def broadcast_new_movies(diff_set, broadcast_list, cin_name):
-    broadcast_msg = "(video) ```New movies in ```*%s*``` this week!``` (video)\n\n" % cin_name
-    log.info("Movies to broadcast: %s", str(diff_set))
-    for new_movie in diff_set:
+def broadcast_new_movies(broadcast_set, broadcast_list, cin_name):
+    broadcast_msg = "(video) ```New movies in ```*%s*```(video)\n\n" % cin_name
+    for new_movie in broadcast_set:
         broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
 
     broadcast_data = {
@@ -34,7 +35,8 @@ def broadcast_new_movies(diff_set, broadcast_list, cin_name):
     failed_list = resp_json['failed_list']
     log.info("Broadcast failed for %d users!", len(failed_list))
     if len(failed_list) == 0:
-        log.info("Successfully broadcasted a message to the following users: %s", str(broadcast_list))
+        log.info("Successfully broadcasted a message to the following users: %s for cinema '%s'" %
+                 (str(broadcast_list), cin_name))
     else:
         for failed_user in failed_list:
             failed_user_id = failed_user['receiver']
@@ -54,25 +56,48 @@ def broadcast_new_movies(diff_set, broadcast_list, cin_name):
                     failed_user_id, failed_status_msg))
 
 
-broadcast_movies_result = db.fetch_broadcast_movies()
-log.info("Extracting movies to broadcast")
-for cinema_id, cinema in broadcast_movies_result.items():
+def broadcast_cinema(cinema, users_to_broadcast):
+    cinema_id = cinema['cinema_id']
     cinema_name = cinema['cinema_name']
-    broadcast_movies = cinema['broadcast_movies']
-    if broadcast_movies is not None:
-        broadcast_movies = broadcast_movies.split(';')
-        # If broadcast_movies for this cinema is not NULL we need check if there are any users subscribed
-        users_to_broadcast = db.fetch_subscribed_users(cinema_id)
-        # TODO: Sofia has 2 cinemas - if user is subscribed to either one of them - they should be notified for both
-        # TODO: use 'groupId' from API
-        if users_to_broadcast:  # Only broadcast to the subscribed users (if any)
-            log.info("Cinema '%s' - starting a broadcast...", cinema_name)
-            broadcast_new_movies(broadcast_movies, users_to_broadcast, cinema_name)
+    log.info("Cinema '%s' - starting a broadcast..." % cinema_name)
+    broadcasted_today = cinema['broadcasted_today']
+    if not broadcasted_today:
+        broadcast_movies = cinema['movies_to_broadcast']
+        if broadcast_movies:
+            broadcast_movies_arr = broadcast_movies.split(';')
+            log.info("Cinema '%s' - movies to broadcast: %s" % (cinema_name, str(broadcast_movies)))
+            # If broadcast_movies for this cinema is not empty we need check if there are any users subscribed
+
+            if users_to_broadcast:  # Only broadcast to the subscribed users (if any)
+                broadcast_new_movies(broadcast_movies_arr, users_to_broadcast, cinema_name)
+            else:
+                log.info("Cinema '%s' - no users subscribed to that cinema." % cinema_name)
         else:
-            log.info("Cinema '%s' - no users subscribed to that cinema.", cinema_name)
-        log.info("Cinema '%s' - broadcast has finished. Resetting broadcast_movies for that cinema...",
-                 cinema_name)
-        db.reset_broadcast_movies(cinema_id)
-        log.info("Cinema '%s' - cinemas.broadcast_movies has been reset!", cinema_name)
+            log.info("Cinema '%s' - nothing to broadcast!" % cinema_name)
+        db.update_cinema_broadcasted_today(cinema_id, True)
+        db.update_movies_to_broadcast(cinema_id, None)
     else:
-        log.info("Cinema '%s' - nothing to broadcast!", cinema_name)
+        log.info("Cinema '%s' - new movies already broadcasted today!" % cinema_name)
+
+
+cinemas = db.fetch_cinemas()
+pulled_movies = {}  # To avoid repetitive queries about the same movie - we keep them here
+
+for cin in cinemas.values():
+    group_id = cin['group_id']
+    group_cinemas = db.fetch_cinemas_by_groupId_not_broadcasted(group_id)
+    nCinemas = len(group_cinemas)
+    users = []
+    for gr_cinema_id in group_cinemas.keys():
+        test = db.fetch_subscribed_to_cinema(gr_cinema_id)
+        users.extend(db.fetch_subscribed_to_cinema(gr_cinema_id))
+    if nCinemas == 0:
+        log.info("All the cinemas have been broadcasted!")
+        break
+    elif nCinemas > 1:
+        log.info("There is more than one cinema in this group_id '%s' - will broadcast to the users subscribed to each "
+                 "cinema in the group" % group_id)
+        for gr_cinema in group_cinemas.values():
+            broadcast_cinema(gr_cinema, users)
+    else:
+        broadcast_cinema(cin, users)

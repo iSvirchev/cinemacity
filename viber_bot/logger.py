@@ -11,7 +11,7 @@ def get_logger(file_name=paths.LOG_PATH):
     logger.addHandler(sh)
 
     if file_name:
-        fh = logging.FileHandler(file_name, 'a')
+        fh = logging.FileHandler(file_name, 'a', 'utf-8')
 
         fh.setFormatter(formatter)
         logger.addHandler(fh)
