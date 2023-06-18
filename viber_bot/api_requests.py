@@ -7,7 +7,7 @@ from dateutil.relativedelta import relativedelta
 
 from utility.logger import log
 from utility.paths import MOCKED_CINEMAS_PATH
-from utility.database_comm import DatabaseCommunication, CinemasTable, MoviesTable
+from utility.database_comm import db, CinemasTable, MoviesTable
 
 log.info("=================================================")
 log.info("            Starting API Requests...             ")
@@ -17,8 +17,6 @@ datetime_now = datetime.datetime.now()
 next_year_date = (datetime_now + relativedelta(years=1)).strftime(url_date_format)  # used in API structure
 today = datetime_now.strftime(url_date_format)
 API_URL = 'https://www.cinemacity.bg/bg/data-api-service/v1'
-
-USE_MOCKED_DATA = True
 
 
 def initialize_cinemas():
@@ -160,7 +158,7 @@ def return_mocked_cinemas():
     return mocked_data
 
 
-if USE_MOCKED_DATA:
+if db.fetch_config_value('use_mocked_data').lower() == 'true':
     log.info("Using mocked data from mocked_cinemas.json!")
     cinemas = return_mocked_cinemas()
 else:
@@ -170,7 +168,6 @@ log.info("=================================================")
 
 log.info("Starting DB operations...")
 db_start_time = time.time()
-db = DatabaseCommunication()
 db.delete_events_table()
 db.create_events_table()
 

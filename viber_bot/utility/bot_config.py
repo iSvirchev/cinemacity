@@ -1,9 +1,8 @@
 from viberbot.api.bot_configuration import BotConfiguration
 from viberbot import Api
-from utility.paths import TOKEN_FILE_PATH
+from utility.database_comm import db
 
-with open(TOKEN_FILE_PATH, 'r') as f:
-    bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
+bot_token = db.fetch_config_value('token')
 
 viber_bot = Api(BotConfiguration(
     name='CinemaCity',

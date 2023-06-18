@@ -4,13 +4,12 @@ import requests
 from utility.logger import log
 from utility.bot_config import bot_token
 from utility.error_codes import ErrorCodes
-from utility.database_comm import DatabaseCommunication
+from utility.database_comm import db
 
 log = log.get_logger()
 log.info("=================================================")
 log.info("             Starting Broadcaster...             ")
 log.info("=================================================")
-db = DatabaseCommunication()
 
 
 def broadcast_new_movies(broadcast_set, broadcast_list, cin_name):

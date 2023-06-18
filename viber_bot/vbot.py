@@ -3,7 +3,7 @@ import datetime
 from time import strftime
 from flask import Flask, request, Response, render_template
 
-from utility.database_comm import DatabaseCommunication, UsersTable, CinemasTable, MoviesTable
+from utility.database_comm import db, UsersTable, CinemasTable, MoviesTable
 from utility.responses import Responses
 from utility.logger import log
 from utility.bot_config import viber_bot
@@ -25,7 +25,6 @@ log.info('Today is: ' + today)
 log.info('Tomorrow is: ' + tomorrow)
 
 rsp = Responses()
-db = DatabaseCommunication()
 db.set_today_4_all_users(today)
 log.info('All users\' default dates have been set to today!')
 

@@ -60,6 +60,7 @@ class DatabaseCommunication:
         self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.set_pragma_settings()
+        self.create_config_table()
         self.create_users_table()
         self.create_movies_table()
         self.create_cinemas_table()
@@ -69,6 +70,16 @@ class DatabaseCommunication:
         with self.conn:
             self.conn.execute("""PRAGMA journal_mode = WAL""")
             self.conn.execute("""PRAGMA synchronous = NORMAL""")
+
+    ################################
+    #        CREATE TABLES
+    ################################
+    def create_config_table(self):
+        with self.conn:
+            self.cursor.execute("""CREATE TABLE IF NOT EXISTS config (
+                param TEXT UNIQUE,
+                value TEXT
+                );""")
 
     def create_users_table(self):
         with self.conn:
@@ -119,6 +130,15 @@ class DatabaseCommunication:
     def delete_events_table(self):
         with self.conn:
             self.cursor.execute("""DROP TABLE IF EXISTS events""")
+
+    ################################
+    #        CONFIG QUERIES
+    ################################
+    def fetch_config_value(self, param):
+        with self.conn:
+            result = self.cursor.execute("SELECT value FROM config WHERE param=:param",
+                                         {'param': param}).fetchone()[0]
+        return result
 
     ################################
     #        USERS QUERIES
@@ -325,16 +345,5 @@ class DatabaseCommunication:
             headers = self.cursor.description
         return convert_result_to_dict(rows, headers)
 
-# self.cursor.row_factory = lambda cursor, row: row[0]
-# https://stackoverflow.com/a/23115247/15266844
-# https://docs.python.org/3/library/sqlite3.html
 
-# https://docs.python.org/3/library/sqlite3.html#sqlite3.Row
-# def fetch_all_movies(self):
-#     self.cursor.row_factory = sqlite3.Row
-#     with self.conn:
-#         row = self.cursor.execute("""SELECT * FROM movies""").fetchone()
-#         headers = self.cursor.description
-#         t = row.keys()
-#         name = row['movie_name']
-#     return convert_result_to_dict(rows, headers)
+db = DatabaseCommunication()
