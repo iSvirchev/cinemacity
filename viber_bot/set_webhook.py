@@ -1,3 +1,7 @@
+from utility.logger import log
 from utility.bot_config import viber_bot
 
-viber_bot.set_webhook('https://73df-95-158-179-20.ngrok-free.app/vbot')
+
+log.info("Will try to set the webhook...")
+test = viber_bot.set_webhook('https://theclumsybarber.party/vbot')
+log.info("Successfully set the new webhook!")

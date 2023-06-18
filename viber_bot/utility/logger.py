@@ -1,3 +1,4 @@
+import sys
 import logging
 from utility.paths import LOG_PATH
 
@@ -13,3 +14,14 @@ if LOG_PATH:
 
     fh.setFormatter(formatter)
     log.addHandler(fh)
+
+
+def log_uncaught(exc_type, exc_value, exc_traceback):
+    if issubclass(exc_type, KeyboardInterrupt):
+        sys.__excepthook__(exc_type, exc_value, exc_traceback)
+        return
+
+    log.error("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+
+sys.excepthook = log_uncaught
