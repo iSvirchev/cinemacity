@@ -1,21 +1,14 @@
 import json
 import requests
-import paths
-import logger
 
-from error_codes import ErrorCodes
+from utility.logger import log
+from utility.bot_config import bot_token
+from utility.error_codes import ErrorCodes
+from utility.database_comm import db
 
-from queries import *
-
-log = logger.get_logger()
 log.info("=================================================")
 log.info("             Starting Broadcaster...             ")
 log.info("=================================================")
-db = DatabaseCommunication(paths.DB_PATH)
-
-with open(paths.TOKEN_FILE_PATH, 'r') as f:
-    bot_token = f.read().replace('X-Viber-Auth-Token:', '').strip()
-log.info("bot_token extracted")
 
 
 def broadcast_new_movies(broadcast_set, broadcast_list, cin_name):
