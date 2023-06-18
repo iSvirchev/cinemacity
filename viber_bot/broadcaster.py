@@ -6,7 +6,6 @@ from utility.bot_config import bot_token
 from utility.error_codes import ErrorCodes
 from utility.database_comm import db
 
-log = log.get_logger()
 log.info("=================================================")
 log.info("             Starting Broadcaster...             ")
 log.info("=================================================")
