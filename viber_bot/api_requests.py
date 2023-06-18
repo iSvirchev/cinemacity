@@ -1,16 +1,13 @@
 import datetime
 import json
-# import sqlite3
 import os
 import time
 import requests
 from dateutil.relativedelta import relativedelta
 
-import logger
-import paths
-from queries import *
-
-log = logger.get_logger()
+from utility.logger import log
+from utility.paths import MOCKED_CINEMAS_PATH
+from utility.database_comm import DatabaseCommunication, CinemasTable, MoviesTable
 
 log.info("=================================================")
 log.info("            Starting API Requests...             ")
@@ -21,7 +18,7 @@ next_year_date = (datetime_now + relativedelta(years=1)).strftime(url_date_forma
 today = datetime_now.strftime(url_date_format)
 API_URL = 'https://www.cinemacity.bg/bg/data-api-service/v1'
 
-USE_MOCKED_DATA = False
+USE_MOCKED_DATA = True
 
 
 def initialize_cinemas():
@@ -150,15 +147,15 @@ log.info("=================================================")
 
 
 def return_mocked_cinemas():
-    mocked_path = paths.MISC_PATH + "mocked_cinemas.json"
-    if os.path.exists(mocked_path):
-        with open(mocked_path, "r") as openfile:
+    if os.path.exists(MOCKED_CINEMAS_PATH):
+        with open(MOCKED_CINEMAS_PATH, "r") as openfile:
             mocked_data = json.load(openfile)
     else:
+        log.debug("mocked_cinemas.json file path is: %s" % MOCKED_CINEMAS_PATH)
         log.info("mocked_cinemas.json does not exist - will create it with API call's information.")
         mocked_data = start_api_calls()
 
-        with open(mocked_path, "w") as outfile:
+        with open(MOCKED_CINEMAS_PATH, "w") as outfile:
             outfile.write(json.dumps(mocked_data))
     return mocked_data
 
@@ -173,7 +170,7 @@ log.info("=================================================")
 
 log.info("Starting DB operations...")
 db_start_time = time.time()
-db = DatabaseCommunication(paths.DB_PATH)
+db = DatabaseCommunication()
 db.delete_events_table()
 db.create_events_table()
 

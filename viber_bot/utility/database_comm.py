@@ -1,4 +1,5 @@
 import sqlite3
+from utility.paths import DB_PATH
 
 
 # headers is cursor.description:
@@ -54,9 +55,9 @@ class UsersTable:
 class DatabaseCommunication:
     # SQLite does not have a separate Boolean storage class.
     # Instead, Boolean values are stored as integers 0 (false) and 1 (true).
-    def __init__(self, db_path):
+    def __init__(self):
         # self.conn = sqlite3.connect(':memory:', check_same_thread=False)  # runtime DB used for debugging
-        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
         self.cursor = self.conn.cursor()
         self.set_pragma_settings()
         self.create_users_table()
