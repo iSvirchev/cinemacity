@@ -12,7 +12,7 @@ log.info("=================================================")
 
 
 def broadcast_new_movies(broadcast_set, broadcast_list, cin_name):
-    broadcast_msg = "(video) ```New movies in ```*%s*```(video)\n\n" % cin_name
+    broadcast_msg = "(video) ```New movies in``` *%s*(video)\n\n" % cin_name
     for new_movie in broadcast_set:
         broadcast_msg = broadcast_msg + "*%s*\n" % new_movie
 
