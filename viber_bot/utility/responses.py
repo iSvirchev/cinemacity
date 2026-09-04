@@ -13,6 +13,8 @@ class Responses:
     unsub_subbed = 'You are now *UNSUBSCRIBED* from our cinema updates.' \
                    '\nType "*sub*" if you wish to subscribe again'
     pick_cinema = "Please pick your favourite cinema so we can begin:"
+    colour_codes = ['#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96','#D9CBC1']
+
 
     def conv_started(self, user_name):
         return 'Welcome %s!\n\n%s' % (user_name, self.pick_cinema)
@@ -47,25 +49,11 @@ class Responses:
 
         return movies_resp
 
-    @staticmethod
-    def dates_kb(dates):
+    def dates_kb(self, dates):
         keyboard = {
             "Type": "keyboard",
             "Buttons": []
         }
-
-        colour_codes = ['#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96',
-                        '#D9CBC1',
-                        '#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96',
-                        '#D9CBC1',
-                        '#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96',
-                        '#D9CBC1',
-                        '#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96',
-                        '#D9CBC1',
-                        '#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96',
-                        '#D9CBC1',
-                        '#75ace1', '#df7779', '#d1b185', '#8187d5', '#00703c', '#7ac2dc', '#bc8dc9', '#727C96',
-                        '#D9CBC1']
 
         button_tpl = {
             "Columns": 2,
@@ -80,7 +68,8 @@ class Responses:
             day_btn = button_tpl.copy()  # we use .copy() as a simple assignment operator '=' gives us object reference
             day_btn['ActionBody'] = date
             day_btn['Text'] = '<font size=\"24\">%s</font>' % date
-            day_btn['BgColor'] = colour_codes[dates.index(date)]
+            # day_btn['BgColor'] = self.colour_codes[dates.index(date)]
+            day_btn['BgColor'] = self.colour_codes[dates.index(date) % len(self.colour_codes)]
             keyboard['Buttons'].append(day_btn)
 
         return keyboard

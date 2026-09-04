@@ -1,11 +1,117 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>VBOT</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VBOT</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Work+Sans:wght@400;500&display=swap');
+
+  :root {
+    --bg: #17130f;
+    --ink: #ece3d4;
+    --ink-dim: #948b7c;
+    --line: #332c24;
+    --ui-green: #2ecc71;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'Work Sans', sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8vh 6vw;
+  }
+
+  main {
+    width: 100%;
+    max-width: 460px;
+  }
+
+  .status-line {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    font-size: 0.82rem;
+    color: var(--ink-dim);
+    margin-bottom: 2rem;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--ui-green);
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: 'Fraunces', serif;
+    font-weight: 600;
+    font-size: clamp(1.9rem, 5vw, 2.4rem);
+    margin: 0 0 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    font-size: 0.98rem;
+    line-height: 1.65;
+    color: var(--ink-dim);
+    margin: 0 0 2.25rem;
+    max-width: 34em;
+  }
+
+  a.open {
+    display: inline-block;
+    padding-bottom: 0.2rem;
+    color: var(--ink);
+    font-size: 0.98rem;
+    text-decoration: none;
+    border-bottom: 1px solid var(--ui-green);
+  }
+
+  a.open:hover { color: var(--ui-green); }
+
+  a.open:focus-visible {
+    outline: 2px solid var(--ui-green);
+    outline-offset: 4px;
+  }
+
+  .rule {
+    border: none;
+    border-top: 1px solid var(--line);
+    margin: 2.25rem 0 1.25rem;
+  }
+
+  .fine {
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+    opacity: 0.7;
+  }
+</style>
 </head>
 <body>
-        <h1>The bot is ALIVE!</h1>
-        <a href="viber://pa?chatURI=cinemacity_bot">Give it a try!</a>
+
+  <main>
+    <div class="status-line">
+      <span class="dot" aria-hidden="true"></span>
+      Bot is online
+    </div>
+
+    <h1>Cinema City Viber Bot</h1>
+    <p>Keeps an eye on CinemaCity's movie catalogue and sends a message on Viber the day something new is announced.</p>
+
+    <a class="open" href="viber://pa?chatURI=cinemacity_bot">Open in Viber</a>
+
+    <hr class="rule">
+    <p class="fine">No account needed &mdash; just add the bot and wait for the alert.</p>
+  </main>
+
 </body>
 </html>
