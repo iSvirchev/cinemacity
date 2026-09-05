@@ -44,8 +44,13 @@ log.info("=================================================")
 log.info("              Viber Bot Started!                 ")
 log.info("=================================================")
 
-@app.route('/vbot', methods=['POST'])
+
+@app.route('/vbot', methods=['POST', 'GET'])
 def incoming():
+    if request.method == 'GET':
+        log.debug("The method is GET")
+        return Response(render_template('index.html'))
+
     request_data = request.get_data()
     log.debug("Received request! Post data: {0}".format(request_data))
     # Every viber message is signed, you can verify the signature using this method
@@ -162,10 +167,6 @@ def incoming():
         log.error("Viber Request has failed")
 
     return Response(status=200)
-
-@app.route('/')
-def index():
-    return render_template('index.html')
 
 
 if __name__ == "__main__":
